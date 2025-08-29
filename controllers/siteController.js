@@ -12,4 +12,14 @@ async function createUser(req, res) {
     }
 };
 
-export { createUser };
+async function getUser(req, res) {
+    try {
+        const userData = await userModel.find();
+        res.status(200).json(userData);
+    } catch (error) {
+        res.status(500).json({ error: "Database error! "});
+    }
+};
+
+
+export { createUser, getUser };
