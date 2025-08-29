@@ -10,7 +10,6 @@ const NODE_ENV = process.env.NODE_ENV;
 dotenv.config();
 
 const app = express();
-connectDB();
 
 //middleware
 app.use(express.json());
