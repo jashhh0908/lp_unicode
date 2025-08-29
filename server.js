@@ -1,6 +1,8 @@
 import express from "express";
 import dotenv from "dotenv"
 import connectDB from "./config/db.js";
+import siteRoute from "./routes/siteRoutes.js";
+
 const PORT = process.env.PORT || 5000;
 dotenv.config();
 
@@ -9,11 +11,7 @@ connectDB();
 
 app.use(express.json());
 
-app.get('/', (req, res) => { //test message
-    res.json({
-        message: "server running"
-    })
-})
+app.use('/', siteRoute);
 
 async function startServer() {
   await connectDB();   
