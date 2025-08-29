@@ -1,23 +1,23 @@
 import userModel from "../model/userModel.js";
+import logger from "../config/logger.js";
 
 async function createUser(req, res) {
     try {
         const newUser = await userModel.create(req.body);
-        res.status(201).json({
-            message: "User created successfully",
-            newUser
-        });
+        logger.info(`User created successfully: ${newUser._id}`);
+        res.status(201).json(newUser);
     } catch (error) {
-        res.status(500).json({ error: "Failed to add user" });
+        next(error);
     }
 };
 
 async function getUser(req, res) {
     try {
         const userData = await userModel.find();
+        logger.info(`${userData.length} users fetched`);
         res.status(200).json(userData);
     } catch (error) {
-        res.status(500).json({ error: "Database error! "});
+        next(error);
     }
 };
 
@@ -29,12 +29,16 @@ async function updateUser(req, res) {
             req.body,
             { new: true, overwrite: true }
         );
-        if(!updatedUser)
+        if(!updatedUser){
+            logger.warn(`User email ${user_email} not found!`)
             return res.status(404).json({ message: "User not updated" });
-        else
+        }
+        else{
+            logger.info(`User updated: ${updatedUser._id}`)
             return res.status(200).json(updatedUser);
+        }
     } catch (error) {
-        res.status(500).json({ error: "Database error!" });
+        next(error);
     }
 };
 
@@ -44,12 +48,16 @@ async function deleteUser(req, res) {
         const deletedUser = await userModel.findOneAndDelete(
             { email: user_email }
         );
-        if(!deletedUser)
+        if(!deletedUser){
+            logger.warn(`User email ${user_email} not found!`)
             return res.status(404).json({ message: "User not deleted!" });
-        else
+        }
+        else{
+            logger.info(`User deleted" ${deletedUser._id}`);
             return res.status(200).json({ message: "User successfully deleted" });
+        }
     } catch (error) {
-        res.status(500).json({ error: "Databse error!" });
+        next(error);
     }
 };
 
