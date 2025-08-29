@@ -38,4 +38,24 @@ async function updateUser(req, res) {
     }
 };
 
-export { createUser, getUser, updateUser };
+async function deleteUser(req, res) {
+    try{
+        const user_email = req.params.email;
+        const deletedUser = await userModel.findOneAndDelete(
+            { email: user_email }
+        );
+        if(!deletedUser)
+            return res.status(404).json({ message: "User not deleted!" });
+        else
+            return res.status(200).json({ message: "User successfully deleted" });
+    } catch (error) {
+        res.status(500).json({ error: "Databse error!" });
+    }
+};
+
+export {
+    createUser, 
+    getUser, 
+    updateUser, 
+    deleteUser 
+};
