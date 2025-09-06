@@ -23,14 +23,14 @@ async function getUser(req, res) {
 
 async function updateUser(req, res) {
     try {
-        const user_email = req.params.email;
+        const userID = req.params.id;
         const updatedUser = await userModel.findOneAndUpdate(
-            { email: user_email},
+            { id: userID},
             req.body,
             { new: true, overwrite: true }
         );
         if(!updatedUser){
-            logger.warn(`User email ${user_email} not found!`)
+            logger.warn(`User not found!`)
             return res.status(404).json({ message: "User not updated" });
         }
         else{
@@ -44,9 +44,9 @@ async function updateUser(req, res) {
 
 async function deleteUser(req, res) {
     try{
-        const user_email = req.params.email;
+        const userID = req.params.id;
         const deletedUser = await userModel.findOneAndDelete(
-            { email: user_email }
+            { id: userID }
         );
         if(!deletedUser){
             logger.warn(`User email ${user_email} not found!`)
