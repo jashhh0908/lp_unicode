@@ -1,7 +1,7 @@
 import userModel from "../model/userModel.js";
 import logger from "../config/logger.js";
 
-async function createUser(req, res) {
+async function createUser(req, res,next) {
     try {
         const newUser = await userModel.create(req.body);
         logger.info(`User created successfully: ${newUser._id}`);
@@ -11,7 +11,7 @@ async function createUser(req, res) {
     }
 };
 
-async function getUser(req, res) {
+async function getUser(req, res, next) {
     try {
         const userData = await userModel.find();
         logger.info(`${userData.length} users fetched`);
@@ -21,11 +21,11 @@ async function getUser(req, res) {
     }
 };
 
-async function updateUser(req, res) {
+async function updateUser(req, res, next) {
     try {
         const userID = req.params.id;
         const updatedUser = await userModel.findOneAndUpdate(
-            { id: userID},
+            { _id: userID},
             req.body,
             { new: true, overwrite: true }
         );
@@ -42,14 +42,14 @@ async function updateUser(req, res) {
     }
 };
 
-async function deleteUser(req, res) {
+async function deleteUser(req, res, next) {
     try{
         const userID = req.params.id;
         const deletedUser = await userModel.findOneAndDelete(
-            { id: userID }
+            { _id: userID }
         );
         if(!deletedUser){
-            logger.warn(`User email ${user_email} not found!`)
+            logger.warn(`User ID ${userID} not found!`)
             return res.status(404).json({ message: "User not deleted!" });
         }
         else{
