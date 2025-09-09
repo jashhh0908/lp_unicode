@@ -4,13 +4,14 @@ import logger from "./config/logger.js";
 import morgan from "morgan";
 import connectDB from "./config/db.js";
 import siteRoute from "./routes/siteRoutes.js";
+import cookieParser from "cookie-parser";
 
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 dotenv.config();
 
 const app = express();
-
+app.use(cookieParser());
 //middleware
 app.use(express.json());
 
