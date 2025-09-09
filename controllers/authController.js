@@ -2,6 +2,7 @@ import userModel from "../model/userModel.js";
 import logger from "../config/logger.js";
 import bcrypt from 'bcrypt';
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
+import jwt from 'jsonwebtoken';
 async function register(req, res, next) {
     try {
         const { name, email, dob, password, credit_scores } = req.body;
@@ -51,7 +52,7 @@ async function login(req, res, next){
             secure: process.env.NODE_ENV === "production",
             sameSite: "Strict",
             maxAge: 7*24*60*60*1000 //expires in 1 week
-        })
+        });
         res.status(200).json({ 
             message: "Login successful",
             token: accessToken,
@@ -66,7 +67,39 @@ async function login(req, res, next){
     }
 }
 
+async function refreshAccessToken (req, res, next) {
+    try{
+        const refreshToken = req.cookies.refreshToken;
+        if(!refreshToken) 
+            return res.status(401).json({ error: "NO refresh token provided" })
+
+        jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, (error, decoded) => {
+            if(error)
+                return res.status(401).json({ error: "Invalid refresh token" })
+
+            const newAccessToken = generateAccessToken(decoded.id);
+
+            res.status(200).json({
+                message: "New access token generated",
+                token: newAccessToken
+            })
+        })
+    } catch (error) {
+        next(error);
+    }
+}
+
+async function logout(req, res, next) {
+    try {
+        res.clearCookie("refreshToken")
+        res.status(200).json({ message: "Logged out successfully" })
+    } catch (error) {
+        next(error);
+    }
+}
 export {
     register,
-    login
+    login,
+    refreshAccessToken,
+    logout
 }
