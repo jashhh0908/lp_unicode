@@ -3,6 +3,7 @@ import logger from "../config/logger.js";
 import bcrypt from 'bcrypt';
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 import jwt from 'jsonwebtoken';
+import sendMail from "../utils/mailer.js";
 async function register(req, res, next) {
     try {
         const { name, email, dob, password, credit_scores } = req.body;
@@ -15,6 +16,13 @@ async function register(req, res, next) {
             password: hashedPass,
             credit_scores,
         })
+    
+        await sendMail(
+            email,
+            "Welcome to Unicode!",
+            `<h1>Hello John</h1><p>Welcome to our app!</p>`,
+            `Hello ${name}, welcome!`
+        )
 
         const accessToken = generateAccessToken(registerUser._id);
 
@@ -44,6 +52,12 @@ async function login(req, res, next){
         if(!pass_check) 
             return res.status(400).json({ message: "Invalid email or password!" })
         
+        await sendMail(
+            user.email,
+            "Login Notification!", 
+            `<p>Hello ${user.name},</p><p>You just logged in at ${new Date().toLocaleString()}</p>`,
+            `Hello ${user.name}. You just logged in at ${new Date().toLocaleString()}`
+        )
         const accessToken = generateAccessToken(user._id);
         const refreshToken = generateRefreshToken(user._id);
 
