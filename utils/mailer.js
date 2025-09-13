@@ -1,7 +1,9 @@
 import nodemailer from 'nodemailer';
-
+import dotenv from 'dotenv'
+dotenv.config()
 const transporter = nodemailer.createTransport({
     secure: true,
+    host: "smtp.gmail.com",
     service: "gmail",
     port: 465,
     auth: {
@@ -10,7 +12,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-const sendMail = async (to, subject, html, text) => {
+const mail = async (to, subject, html, text) => {
     const receiver = ({
         from: `Unicode Mentee <${process.env.SMTP_USER}>`,
         to,
@@ -26,4 +28,4 @@ const sendMail = async (to, subject, html, text) => {
     })
 };
 
-export default sendMail;
+export default mail;

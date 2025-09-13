@@ -1,9 +1,11 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import userModel from "../model/userModel.js";
 import logger from "../config/logger.js";
 import bcrypt from 'bcrypt';
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 import jwt from 'jsonwebtoken';
-import sendMail from "../utils/mailer.js";
+import mail from "../utils/mailer.js";
 async function register(req, res, next) {
     try {
         const { name, email, dob, password, credit_scores } = req.body;
@@ -17,7 +19,7 @@ async function register(req, res, next) {
             credit_scores,
         })
     
-        await sendMail(
+        await mail(
             email,
             "Welcome to Unicode!",
             `<h1>Hello John</h1><p>Welcome to our app!</p>`,
