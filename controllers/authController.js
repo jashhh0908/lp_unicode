@@ -55,7 +55,7 @@ async function login(req, res, next){
         if(!pass_check) 
             return res.status(400).json({ message: "Invalid email or password!" })
         
-        await sendMail(
+        await mail(
             user.email,
             "Login Notification!", 
             `<p>Hello ${user.name},</p><p>You just logged in at ${new Date().toLocaleString()}</p>`,
