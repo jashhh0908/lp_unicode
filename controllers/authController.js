@@ -6,6 +6,7 @@ import bcrypt from 'bcrypt';
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 import jwt from 'jsonwebtoken';
 import mail from "../utils/mailer.js";
+import uploadToCloudinary from '../utils/cloudinary.js';
 async function register(req, res, next) {
     try {
         const { name, email, dob, password, credit_scores } = req.body;
@@ -113,9 +114,36 @@ async function logout(req, res, next) {
         next(error);
     }
 }
+
+async function uploadProfileImage(req, res, next) {
+    try {
+        const userID = req.user.id;
+        if(!req.file)
+            return res.status(400).json({ error: "Image file is required" });
+
+        const uploaded = await uploadToCloudinary(req.file.path);
+        if(!uploaded)
+            return res.status(500).json({ error: "Cloundinary upload failed" });
+
+        const updatedUser = await userModel.findByIdAndUpdate(userID, 
+            { profile_image: uploaded.secure_url },
+            { new: true }
+        );
+
+        res.status(200).json({
+            message: "Profile image uploaded successfully",
+            profile_image: updatedUser.profile_image
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+}
+
 export {
     register,
     login,
     refreshAccessToken,
-    logout
+    logout,
+    uploadProfileImage
 }
