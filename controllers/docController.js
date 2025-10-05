@@ -24,6 +24,25 @@ const createDocument = async (req, res, next) => {
     }
 }
 
+const getDocument = async (req, res, next) => {
+    try {
+        const userID = req.user.id;
+        const documents = await DocumentModel.find({
+            $or: [
+                { 'access.view': userID },
+                { 'access.edit': userID },
+                { createdBy: userID }
+            ]
+        })
+        res.status(200).json({ 
+            message: "Documents fetched successfully",
+            documents
+        })
+    } catch (error) {
+        next(error);
+    }
+}
 export {
-    createDocument
+    createDocument,
+    getDocument,
 }
