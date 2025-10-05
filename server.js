@@ -6,6 +6,8 @@ import connectDB from "./config/db.js";
 import siteRoute from "./routes/siteRoutes.js";
 import cookieParser from "cookie-parser";
 import profileRoute from "./routes/profileRoutes.js";
+import docRoute from "./routes/docRoutes.js";
+
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 dotenv.config();
@@ -28,7 +30,7 @@ app.use((err, req, res, next) => {
 
 app.use('/', siteRoute);
 app.use('/profile', profileRoute);
-
+app.use('/document', docRoute);
 async function startServer() {
   await connectDB();   
   app.listen(PORT, () => {
