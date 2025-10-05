@@ -21,6 +21,10 @@ const userSchema = new mongoose.Schema({
     credit_scores: {
         type: Number,
         required: true
+    },
+    profile_image: {
+        type: String,
+        default: null
     }
 },
 {
