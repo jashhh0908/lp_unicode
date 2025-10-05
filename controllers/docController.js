@@ -70,8 +70,28 @@ const updateDocument = async (req, res, next) => {
         next(error);
     }
 }
+
+const deleteDocument = async (req, res, next) => {
+    try {
+        const userID = new mongoose.Types.ObjectId(req.user.id);
+        const docID = req.params.id;
+        const document = await DocumentModel.findById(docID);
+        if(!document)
+            return res.status(404).json({error: "Document not found"});
+        if(!document.createdBy.equals(userID))
+            return res.status(403).json({error: "You don't have permission to delete this document"});    
+        const deleted = await DocumentModel.findByIdAndDelete(docID);
+        if(deleted)
+            return res.status(200).json({message: "Document deleted successfully"});
+        else
+            return res.status(500).json({error: "Document deletion failed"});
+    } catch (error) {
+        next(error);
+    }
+}
 export {
     createDocument,
     getDocument,
-    updateDocument
+    updateDocument,
+    deleteDocument
 }
