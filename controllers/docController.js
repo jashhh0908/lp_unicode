@@ -89,9 +89,58 @@ const deleteDocument = async (req, res, next) => {
         next(error);
     }
 }
+
+// Access Management 
+
+const requestAccess = async (req, res, next) => {
+    try {
+        const docID = req.params.id;
+        const userID = req.user.id;
+        const req_type = req.body.type;
+        if(!['view', 'edit'].includes(req_type))
+            return res.status(400).json({ error: "Invalid access type. Must contain 'view' or 'edit'" });
+        const document = await DocumentModel.findById(docID);
+        if(!document) 
+            return res.status(404).json({error: "Document not found"})
+
+        if(req_type === 'view' && document.access.view.includes(userID))
+            return res.status(400).json({error: "You already have viewing access to this document"});
+
+        if(req_type === 'edit' && document.access.edit.includes(userID))
+            return res.status(400).json({error: "You already have editing access to this document"});
+        
+        //check if the request already exists
+        const exists = document.requests.find(function(r) {
+            return r.user.toString() === userID && r.type === req_type && r.status === "pending";
+        })
+        if(exists)
+            return res.status(400).json({error: "Request already pending!"});
+
+        //push the request 
+        document.requests.push({
+            user: userID,
+            type: req_type,
+            status: "pending"
+        })
+
+        await document.save();
+
+        res.status(201).json({
+            message: "Request sent successfully",
+            request: {
+                user: userID,
+                type: req_type,
+                status: "pending"
+            }
+        })
+    } catch (error) {
+        next(error);
+    }
+}
 export {
     createDocument,
     getDocument,
     updateDocument,
-    deleteDocument
+    deleteDocument,
+    requestAccess
 }
