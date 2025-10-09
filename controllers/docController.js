@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import userModel from "../model/userModel.js";
 import DocumentModel from "../model/docModel.js";
 
 const createDocument = async (req, res, next) => {
@@ -182,11 +183,59 @@ const approveRequest = async (req, res, next) => {
         next(error);
     }
 }
+
+const addUserAccess = async (req, res, next) => {
+    try {
+        const docID = req.params.id;
+        const { user: userID_toAdd, type } = req.body;
+
+        if(!['view', 'edit'].includes(type)) 
+            return res.status(400).json({error: "Invalid access type. Must contain 'view' or 'edit'"});
+        
+        const document = await DocumentModel.findById(docID)
+        if(!document)
+            return res.status(404).json({error: "Document not found"});
+    
+        //owner check
+        if(!(document.createdBy.toString() === req.user.id))
+            return res.status(403).json({error: "Only the document owner can grant access"});
+        
+        const User_toAdd = await userModel.findById(userID_toAdd);
+        if(!User_toAdd)
+            return res.status(400).json({error: "User not found"})
+
+        if(type === "view") {
+            if(!document.access.view.includes(userID_toAdd)){
+                document.access.view.push(userID_toAdd)
+            } else {
+                return res.status(400).json({error: "User already has viewing access"});
+            }
+        }
+
+        if(type === "edit") {
+            if(!document.access.edit.includes(userID_toAdd)){
+                document.access.edit.push(userID_toAdd)
+            } else {
+                return res.status(400).json({error: "User already has editing access"});
+            }
+        }
+
+        await document.save();
+        res.status(200).json({
+            message: `${type}ing access given successfully`,
+            userID: userID_toAdd,
+            name: User_toAdd.name
+        })
+    } catch (error) {
+        next(error);
+    }
+}
 export {
     createDocument,
     getDocument,
     updateDocument,
     deleteDocument,
     requestAccess,
-    approveRequest
+    approveRequest,
+    addUserAccess
 }
