@@ -137,10 +137,56 @@ const requestAccess = async (req, res, next) => {
         next(error);
     }
 }
+
+const approveRequest = async (req, res, next) => {
+    try {
+        const docID = req.params.id;
+        const { user: requesting_userID, type, action } = req.body;
+        
+        if(!['view', 'edit'].includes(type)) 
+            return res.status(400).json({error: "Invalid access type. Must contain 'view' or 'edit'"});
+        
+        if(!["approve", "reject"].includes(action))
+            return res.status(400).json({error: "Invalid action type. Must contain 'approve' or 'reject'"});
+
+        const document = await DocumentModel.findById(docID)
+        if(!document)
+            return res.status(404).json({error: "Document not found"});
+    
+        //owner check
+        if(!(document.createdBy.toString() === req.user.id))
+            return res.status(403).json({error: "Only the document owner can approve or reject requests"});
+        
+        const reqIndex = document.requests.findIndex(function(r) {
+            return r.user.toString() === requesting_userID && r.type === type && r.status === 'pending'
+        })
+        if(reqIndex === -1) 
+            return res.status(404).json({error: "Request not found"})
+
+        if(action === "approve"){
+            if(type === "view" && !document.access.view.includes(requesting_userID))
+                document.access.view.push(requesting_userID)
+            if(type === "edit" && !document.access.edit.includes(requesting_userID))
+                document.access.edit.push(requesting_userID)
+            document.requests[reqIndex].status = "approved"
+        } else {
+            document.requests[reqIndex].status = "rejected";
+        }
+
+        await document.save();
+        res.status(200).json({
+            message: `Request ${action}d successfully.`,
+            update: document.requests[reqIndex]
+        })
+    } catch (error) {
+        next(error);
+    }
+}
 export {
     createDocument,
     getDocument,
     updateDocument,
     deleteDocument,
-    requestAccess
+    requestAccess,
+    approveRequest
 }
