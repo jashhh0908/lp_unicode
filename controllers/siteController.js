@@ -7,12 +7,12 @@ async function createUser(req, res,next) {
         logger.info(`User created successfully: ${newUser._id}`);
         res.status(201).json(newUser);
     } catch (error) {
-        next(error);
-    }
-};
+            next(error);
+        }
+    };
 
-async function getUser(req, res, next) {
-    try {
+    async function getUser(req, res, next) {
+        try {
         const userData = await userModel.find();
         logger.info(`${userData.length} users fetched`);
         res.status(200).json(userData);

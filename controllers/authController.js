@@ -28,8 +28,17 @@ async function register(req, res, next) {
         )
 
         const accessToken = generateAccessToken(registerUser._id);
-
+        const refreshToken = generateRefreshToken(registerUser._id);
+        
         logger.info(`User created successfully: ${registerUser._id}`);
+
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "Strict",
+            maxAge: 7*24*60*60*1000 //expires in 1 week
+        }); 
+
         res.status(201).json({
             message: "User registered successfully",
             token: accessToken,
