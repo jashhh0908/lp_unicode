@@ -6,22 +6,26 @@ const versionSchema = new mongoose.Schema({
         ref: 'Document',
         required: true
     },
-    content: {
-        type: Object,
-        required: true
-    },
-    versionNumber: {
-        type: Number,
-        required: true
-    },
-    editedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-    },
-    editedAt: {
-        type: Date,
-        default: Date.now
-    }
+    versions: [
+        {
+            versionNumber: {
+                type: Number,
+                required: true
+            },
+            editedBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User'
+            },
+            editedAt: {
+                type: Date,
+                default: Date.now
+            },
+            content: {
+                title: String,
+                content: String
+            },
+        },
+    ]
 });
 
 const versionModel = mongoose.model("Version", versionSchema);
