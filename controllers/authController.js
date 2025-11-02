@@ -23,8 +23,7 @@ async function register(req, res, next) {
         await mail(
             email,
             "Welcome to Unicode!",
-            `<h1>Hello John</h1><p>Welcome to our app!</p>`,
-            `Hello ${name}, welcome!`
+            `<h1>Hello ${name}</h1><p>Welcome to our app!</p>`,
         )
 
         const accessToken = generateAccessToken(registerUser._id);

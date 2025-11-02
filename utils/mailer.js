@@ -12,18 +12,17 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-const mail = async (to, subject, html, text) => {
+const mail = async (to, subject, html) => {
     const receiver = ({
         from: `Unicode Mentee <${process.env.SMTP_USER}>`,
         to,
         subject,
         html,
-        text
     }) 
     transporter.sendMail(receiver, (error) => {
         if(error)
             throw(error);
-        console.log("success!");
+        console.log("Email sent: ", receiver.to);
         response.end();
     })
 };
