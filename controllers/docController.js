@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import userModel from "../model/userModel.js";
 import DocumentModel from "../model/docModel.js";
+import versionModel from "../model/versionModel.js";
 
 const createDocument = async (req, res, next) => {
     try {
@@ -54,19 +55,62 @@ const updateDocument = async (req, res, next) => {
         if(!document.access.edit.includes(userID))
             return res.status(403).json({ error: "You don't have permission to edit this document" });
 
+        //find the all versions of the document
+        let doc_version = await versionModel.findOne({document: docID});
+        let versionNumber;
+        if(!doc_version) //if document is newly created it has no existing versions
+            versionNumber = 1; 
+        else
+            versionNumber = doc_version.versions.length + 1;    
+
+        try{
+            const previousVersion = { //save current version to db before updating, after updation it is "previous version"
+                versionNumber,
+                editedBy: userID,
+                content: {
+                    title: document.title,
+                    content: document.content
+                }
+            };
+            
+            if(!doc_version){
+                doc_version = await versionModel.create({
+                    document: docID,
+                    versions: [previousVersion]
+                })
+            }
+            else {
+                doc_version.versions.push(previousVersion)
+                await doc_version.save();
+            }
+            
+        } catch (error) {
+            console.log("Error in saving version: ", error);
+            throw error;
+        }
+
         const updatedFields = {
             title: req.body.title,
             content: req.body.content
         }
-        const updatedDoc = await DocumentModel.findByIdAndUpdate( docID, 
-            updatedFields,
-            { new: true, overwrite: true }
-        )
-
-        res.status(200).json({ 
-            message: "Document updated successfully",
-            document: updatedDoc
-        })
+        let updatedDoc;
+        try{
+            updatedDoc = await DocumentModel.findByIdAndUpdate( docID, 
+                updatedFields,
+                { new: true, overwrite: true }
+            )
+            res.status(200).json({ 
+                message: "Document updated and previous version saved successfully",
+                document: updatedDoc
+            })
+        } catch (error) {
+            //if an error occurs while updating, then we need to remove the previously added version since it is still current.
+            if(!updatedDoc) {
+                doc_version.versions.pop();
+                await doc_version.save();
+            }
+            throw error;
+        }
     } catch (error) {
         next(error);
     }
