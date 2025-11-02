@@ -278,9 +278,17 @@ const addUserAccess = async (req, res, next) => {
 const getDocHistory = async (req, res, next) => {
     try {
         const docID = req.params.id;
+        const userID = req.user.id;
+
         const document = await DocumentModel.findById(docID);
         if(!document)
             return res.status(404).json({error: "Document not found"});
+        if(!document.createdBy.equals(userID.toString()) &&
+           !document.access.edit.includes(userID.toString()) &&
+           !document.access.view.includes(userID.toString()) 
+        ) 
+            return res.status(404).json({error: "You cannot view history as you are not a collaborator on this document"});
+            
 
         const doc_version = await versionModel.findOne({document: docID});
         if(!doc_version)
