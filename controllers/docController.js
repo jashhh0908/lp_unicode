@@ -274,6 +274,30 @@ const addUserAccess = async (req, res, next) => {
         next(error);
     }
 }
+
+const getDocHistory = async (req, res, next) => {
+    try {
+        const docID = req.params.id;
+        const document = await DocumentModel.findById(docID);
+        if(!document)
+            return res.status(404).json({error: "Document not found"});
+
+        const doc_version = await versionModel.findOne({document: docID});
+        if(!doc_version)
+            return res.status(404).json({error: "No version history found"});
+        
+        const sorted_doc_Version = doc_version.versions.sort(
+            (a, b) => new Date(b.editedAt) - new Date(a.editedAt)
+        );
+
+        res.status(200).json({
+            message: "Version history fetch successful!",
+            sorted_doc_Version
+        })
+    } catch (error) {
+        next(error)
+    }
+}
 export {
     createDocument,
     getDocument,
@@ -281,5 +305,6 @@ export {
     deleteDocument,
     requestAccess,
     approveRequest,
-    addUserAccess
+    addUserAccess,
+    getDocHistory
 }
