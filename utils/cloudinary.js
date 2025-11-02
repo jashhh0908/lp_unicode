@@ -7,10 +7,12 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const uploadToCloudinary = async (filePath) => {
+const uploadToCloudinary = async (filePath, fileName) => {
     try {
         if(!filePath) throw new Error("File path is required");
         const response = await cloudinary.uploader.upload(filePath, {
+            folder: "user_pfp",
+            public_id: fileName,
             resource_type: "auto",
         })
         console.log("File uploaded successfully ", response.url);

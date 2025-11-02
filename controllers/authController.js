@@ -129,7 +129,9 @@ async function uploadProfileImage(req, res, next) {
         if(!req.file)
             return res.status(400).json({ error: "Image file is required" });
 
-        const uploaded = await uploadToCloudinary(req.file.path);
+        const user = await userModel.findById(userID);
+        const fileName = `${user.name}_${user.dob}`;
+        const uploaded = await uploadToCloudinary(req.file.path,fileName);
         if(!uploaded)
             return res.status(500).json({ error: "Cloundinary upload failed" });
 
