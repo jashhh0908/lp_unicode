@@ -11,23 +11,23 @@ const DocumentSchema = new mongoose.Schema({
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'user',
+        ref: 'User',
         required: true
     },
     access: {
         view: [{ 
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'user'
+            ref: 'User'
         }],
         edit: [{
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'user'
+            ref: 'User'
         }]
     },
     requests: [{
         user: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'user'
+            ref: 'User'
         },
         type: {
             type: String,
@@ -42,5 +42,5 @@ const DocumentSchema = new mongoose.Schema({
     }]
 });
 
-const DocumentModel = mongoose.model('document', DocumentSchema);
+const DocumentModel = mongoose.model('Document', DocumentSchema);
 export default DocumentModel;
