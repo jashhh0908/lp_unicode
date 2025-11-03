@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import userModel from "../model/userModel.js";
 import DocumentModel from "../model/docModel.js";
 import versionModel from "../model/versionModel.js";
+import mail from "../utils/mailer.js";
 
 const createDocument = async (req, res, next) => {
     try {
@@ -144,7 +145,7 @@ const requestAccess = async (req, res, next) => {
         const req_type = req.body.type;
         if(!['view', 'edit'].includes(req_type))
             return res.status(400).json({ error: "Invalid access type. Must contain 'view' or 'edit'" });
-        const document = await DocumentModel.findById(docID);
+        const document = await DocumentModel.findById(docID).populate("createdBy", "email name");
         if(!document) 
             return res.status(404).json({error: "Document not found"})
 
@@ -170,6 +171,15 @@ const requestAccess = async (req, res, next) => {
 
         await document.save();
 
+        const requesting_user = await userModel.findById(userID);
+        
+        await mail(
+            document.createdBy.email,
+            "REQUESTING ACCESS!",
+            `<p><b>Name: ${requesting_user.name}</b> (${requesting_user.email}) has requested <b>${req_type}</b> access to your document "<b>${document.title}</b>".</p>
+            <p>Please either accept or reject this request.</p>
+            ` 
+        )
         res.status(201).json({
             message: "Request sent successfully",
             request: {
