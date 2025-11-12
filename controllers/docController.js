@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { diffWords, diffLines } from "diff";
 import userModel from "../model/userModel.js";
 import DocumentModel from "../model/docModel.js";
 import versionModel from "../model/versionModel.js";
@@ -362,6 +363,54 @@ const restoreVersion = async (req, res, next) => {
         next(error);
     }
 }
+
+const compareVersions = async (req, res, next) => {
+    try {
+        const docID = req.params.id;
+        const v1 = req.params.v1;
+        const v2 = req.params.v2;
+        const userID = req.user.id;
+        const document = await DocumentModel.findById(docID);
+        if(!document)
+            return res.status(404).json({error: "Document not found"});
+        if(!document.createdBy.equals(userID) &&
+           !document.access.edit.includes(userID.toString()) &&
+           !document.access.view.includes(userID.toString()) 
+        ) 
+            return res.status(403).json({error: "You cannot compare versions as you are not a collaborator on this document"});
+            
+        const doc_version = await versionModel.findOne({document: docID});
+        if(!doc_version)
+            return res.status(404).json({error: "No version history found"});
+        
+        const version1 = doc_version.versions.id(v1);
+        const version2 = doc_version.versions.id(v2);
+
+        if(!version1 || !version2)
+            return res.status(404).json({error: "Version(s) not found"});
+
+        const v1_content = version1.content;
+        const v2_content = version2.content;
+
+        //find difference between title and content of both versions
+        const titleDiff = diffWords(v1_content.title, v2_content.title);
+        const contentDiff = diffLines(v1_content.content, v2_content.content);
+
+        res.status(200).json({
+            message: "Versions compared successfully",
+            createdBy: document.createdBy,
+            v1: version1.versionNumber,
+            v2: version2.versionNumber,
+            differences: {
+                title: titleDiff,
+                content: contentDiff
+            }
+        });
+
+    } catch (error) {
+        next(error);
+    }
+}
 export {
     createDocument,
     getDocument,
@@ -371,5 +420,6 @@ export {
     approveRequest,
     addUserAccess,
     getDocHistory,
-    restoreVersion
+    restoreVersion,
+    compareVersions
 }
