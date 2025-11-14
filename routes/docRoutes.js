@@ -1,6 +1,6 @@
 import express from 'express';
 import { authMiddleware } from '../middleware/authMiddleware.js';
-import { createDocument, getDocument, updateDocument, deleteDocument, requestAccess, approveRequest, addUserAccess, getDocHistory, restoreVersion, compareVersions } from '../controllers/docController.js';
+import { createDocument, getDocument, updateDocument, deleteDocument, requestAccess, approveRequest, addUserAccess, getDocHistory, restoreVersion, compareVersions, exportToPDF } from '../controllers/docController.js';
 const router = express.Router();
 
 router.post('/create', authMiddleware, createDocument);
@@ -13,4 +13,5 @@ router.patch('/add-user-access/:id', authMiddleware, addUserAccess);
 router.get('/:id/history', authMiddleware, getDocHistory);
 router.patch('/:id/restore/:versionID', authMiddleware, restoreVersion);
 router.get('/:id/compare/:v1/:v2', authMiddleware, compareVersions);
+router.get('/:id/export/pdf', authMiddleware, exportToPDF);
 export default router;
