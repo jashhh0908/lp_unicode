@@ -4,6 +4,7 @@ import userModel from "../model/userModel.js";
 import DocumentModel from "../model/docModel.js";
 import versionModel from "../model/versionModel.js";
 import mail from "../utils/mailer.js";
+import PDFDocument from "pdfkit";
 
 const createDocument = async (req, res, next) => {
     try {
@@ -411,6 +412,32 @@ const compareVersions = async (req, res, next) => {
         next(error);
     }
 }
+
+const exportToPDF = async (req, res, next) => {
+    try {
+        const docID = req.params.id;
+        const userID = req.user.id;
+        const document = await DocumentModel.findById(docID);
+        if(!document)
+            return res.status(404).json({error: "Document not found"});
+        if(!document.createdBy.equals(userID) &&
+           !document.access.edit.includes(userID.toString()) &&
+           !document.access.view.includes(userID.toString()) 
+        ) 
+            return res.status(403).json({error: "You cannot export this document as you are not a collaborator on it"});
+        
+        const pdfDoc = new PDFDocument();
+        res.setHeader('Content-Disposition', `attachment; filename="${document.title}.pdf"`);
+        res.setHeader('Content-Type', 'application/pdf');
+        pdfDoc.pipe(res);
+        pdfDoc.fontSize(20).text(document.title, { align: 'center' });
+        pdfDoc.moveDown();
+        pdfDoc.fontSize(12).text(document.content);
+        pdfDoc.end();
+    } catch (error) {
+        next(error);
+    }
+}
 export {
     createDocument,
     getDocument,
@@ -421,5 +448,6 @@ export {
     addUserAccess,
     getDocHistory,
     restoreVersion,
-    compareVersions
+    compareVersions,
+    exportToPDF
 }
