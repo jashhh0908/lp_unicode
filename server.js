@@ -11,6 +11,7 @@ import connectDB from "./config/db.js";
 import siteRoute from "./routes/siteRoutes.js";
 import profileRoute from "./routes/profileRoutes.js";
 import docRoute from "./routes/docRoutes.js";
+import { log } from "console";
 
 const app = express();
 const server = http.createServer(app);
@@ -28,8 +29,42 @@ if (NODE_ENV == 'development'){
 }
 
 //socket.io
+const presenceMap = new Map();  
 io.on("connection", (socket) => {
   console.log("A new user has connected", socket.id);
+  socket.on("joinDoc", ({documentId, userId}) => {
+    if(!documentId || !userId)
+      return;
+    socket.join(documentId);
+    if(!presenceMap.has(documentId))
+      presenceMap.set(documentId, new Map());
+
+    presenceMap.get(documentId).set(socket.id, {
+      userId,
+      lastActive: Date.now()
+    });
+    
+    console.log(`Socket ${socket.id} joined document: ${documentId} as ${userId}`);   
+    
+  });
+
+  socket.on("heartbeat", ({documentId}) => {
+    const docSessions = presenceMap.get(documentId);
+    if(!docSessions) return;
+    const session = docSessions.get(socket.id);
+    if(session) {
+      session.lastActive = Date.now();
+      console.log(`Heartbeat from ${socket.id} for ${documentId}`);
+    }
+  });
+
+  socket.on("leaveDoc", ({documentId}) => {
+    const docSessions = presenceMap.get(documentId);
+    if(!docSessions) return;
+    if(docSessions.delete(socket.id))
+      console.log(`Socket ${socket.id} left document: ${documentId}`)
+    socket.leave(documentId)
+  });
 });
 
 app.use(express.static(path.resolve("./public")));

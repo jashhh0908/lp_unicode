@@ -10,9 +10,25 @@
   <button onclick="createConnection()">Create a WS Connection</button>
   <script src="/socket.io/socket.io.js"></script>
   <script>
+    let socket;
+    let heartbeatInterval;
     function createConnection() {
-       const socker = io();
+      socket = io();
     } 
+    function startHeartbeat(documentId) {
+      heartbeatInterval = setInterval(() => {
+        socket.emit("heartbeat", {documentId});
+      },10000);
+    }
+    function leaveDoc(documentId) {
+      socket.emit("leaveDoc", {documentId});
+      if(heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+
+      console.log("Left Document: ", documentId);
+    }
   </script>
 </body>
 </html>
