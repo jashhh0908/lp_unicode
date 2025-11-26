@@ -20,13 +20,7 @@ const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 dotenv.config();
 
-//middleware
-app.use(cookieParser());
-app.use(express.json());
 
-if (NODE_ENV == 'development'){
-  app.use(morgan("tiny"));
-}
 
 //socket.io
 
@@ -104,6 +98,35 @@ io.on("connection", (socket) => {
     }
   });
 });
+
+//remove session if there is inactivity
+setInterval(() => {
+  const currentTime = Date.now();
+  const timeout = 30*1000;
+  for(const [docId, docSessions] of presenceMap.entries()) {
+    let changed = false;
+    for(const [clientId, data] of docSessions.entries()) {
+      if(currentTime - data.lastActive > timeout) {
+        docSessions.delete(clientId);
+        changed = true;
+        console.log(`Removed client ${clientId} from document ${docId} due to inactivity.`);
+      }
+    }
+    if(changed)
+      emitPresence(docId);
+    if(docSessions.size === 0) {
+      presenceMap.delete(docId);
+    }
+  }
+}, 30000);
+
+//middleware
+app.use(cookieParser());
+app.use(express.json());
+
+if (NODE_ENV == 'development'){
+  app.use(morgan("tiny"));
+}
 
 app.use(express.static(path.resolve("./public")));
 
