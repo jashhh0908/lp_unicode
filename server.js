@@ -102,7 +102,7 @@ io.on("connection", (socket) => {
 //remove session if there is inactivity
 setInterval(() => {
   const currentTime = Date.now();
-  const timeout = 30*1000;
+  const timeout = NODE_ENV === 'development' ? 30*1000 : 5*60*1000;
   for(const [docId, docSessions] of presenceMap.entries()) {
     let changed = false;
     for(const [clientId, data] of docSessions.entries()) {
