@@ -29,7 +29,27 @@ if (NODE_ENV == 'development'){
 }
 
 //socket.io
+
 const presenceMap = new Map();  
+function emitPresence(documentId) {
+  const docSessions = presenceMap.get(documentId);
+  let users;
+  if(docSessions) {
+    users = [...docSessions.entries()].map(([clientId, data]) => ({
+        clientId,
+        userId: data.userId,
+        lastActive: data.lastActive
+      }))
+  } else {
+    users = [];
+  }
+
+  io.to(documentId).emit("presence:update", {
+    documentId,
+    users
+  });
+}
+
 io.on("connection", (socket) => {
   console.log("A new user has connected", socket.id);
   socket.on("joinDoc", ({documentId, userId}) => {
@@ -45,7 +65,7 @@ io.on("connection", (socket) => {
     });
     
     console.log(`Socket ${socket.id} joined document: ${documentId} as ${userId}`);   
-    
+    emitPresence(documentId);
   });
 
   socket.on("heartbeat", ({documentId}) => {
@@ -54,16 +74,34 @@ io.on("connection", (socket) => {
     const session = docSessions.get(socket.id);
     if(session) {
       session.lastActive = Date.now();
-      console.log(`Heartbeat from ${socket.id} for ${documentId}`);
+      //console.log(`Heartbeat from ${socket.id} for ${documentId}`); (testing purpose only)
     }
   });
 
   socket.on("leaveDoc", ({documentId}) => {
     const docSessions = presenceMap.get(documentId);
     if(!docSessions) return;
-    if(docSessions.delete(socket.id))
-      console.log(`Socket ${socket.id} left document: ${documentId}`)
+    if(docSessions.delete(socket.id)) //.delete returns true/false depending on if the doc is removed or not
+      console.log(`Socket ${socket.id} left document: ${documentId}`);
     socket.leave(documentId)
+    emitPresence(documentId);
+  });
+  
+  socket.on("disconnect", ({documentId}) => {
+    console.log(`Socket ${socket.id} disconnected`);
+    for(const [docId, docSessions] of presenceMap.entries()) { 
+      /*
+        map uses key, value structure => (docId, sessionData)
+        hence to destructure we do [docId, docSessions]
+      */
+      if(docSessions.delete(socket.id)) {
+        console.log(`Removed ${socket.id} from document ${docId}`);
+        emitPresence(docId);
+      }
+
+      if(docSessions.size === 0) //if the document room becomes empty on deletion then we delete it 
+        presenceMap.delete(docId);
+    }
   });
 });
 
