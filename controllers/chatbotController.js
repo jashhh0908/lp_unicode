@@ -1,20 +1,30 @@
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import DocumentModel from "../model/docModel.js";
 
 dotenv.config({path: "../.env"});
 const ai = new GoogleGenAI({apiKey: process.env.GEMINI_API_KEY});
 
-export const chatbot = async (req, res) => {
+export const chatbot = async (req, res, next) => {
     try {
-        const {question, docText} = req.body;
-        if(!question || !docText) {
-            return res.status(400).json({message: "Question and Document Text required!"});
+        const { question } = req.body;
+        const docID = req.params.id;
+        const userID = req.user.id;
+        if(!question || !docID) {
+            return res.status(400).json({message: "Question and Document ID required!"});
+        }
+        const document = await DocumentModel.findById(docID);
+        if(!document) {
+            return res.status(404).json({error: "Document not found!"});
+        }
+        if(!document.createdBy.equals(userID) && !document.access.edit.includes(userID) && !document.access.view.includes(userID)) {
+            return res.status(403).json({message: "Only collaborators/owner can access the chatbot for this document"});
         }
 
         const prompt = `
-You are an AI Assistant helping users unserstand documents.
+You are an AI Assistant helping users understand documents.
 Document Text: 
-${docText}
+${document.content}
 
 Question:
 ${question}
@@ -33,6 +43,7 @@ Answer clearly and in a concise manner.
         })
     } catch (error) {
         console.error("Chatbot Error:", error);
+        next(error);
     }
 }
 
