@@ -11,7 +11,7 @@ import connectDB from "./config/db.js";
 import siteRoute from "./routes/siteRoutes.js";
 import profileRoute from "./routes/profileRoutes.js";
 import docRoute from "./routes/docRoutes.js";
-import { log } from "console";
+import chatbotRoute from './routes/chatbotRoutes.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -139,6 +139,7 @@ app.use((err, req, res, next) => {
 app.use('/', siteRoute);
 app.use('/profile', profileRoute);
 app.use('/document', docRoute);
+app.use('/chatbot', chatbotRoute);
 
 async function startServer() {
   await connectDB();   
