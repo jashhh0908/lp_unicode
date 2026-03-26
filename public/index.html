@@ -8,13 +8,12 @@
 <body>
       <h1>Document Collaboration Module</h1>
 
-      <button onclick="createConnection()">Create WS Connection</button>
       <button onclick="joinDocument()">Join Document</button>
       <button onclick="leaveCurrentDoc()">Leave Document</button>
 
       <br><br>
-
       <textarea id="editor" rows="15" cols="80" placeholder="Start typing..."></textarea>
+      <div id="users"></div>
       <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
       <script>
             let socket;
@@ -23,13 +22,12 @@
             const userId = "user-" + Math.floor(Math.random() * 1000);
 
             function createConnection() {
-                socket = io();
+                socket = io("http://localhost:5000");
 
-                socket.on("presence:update", (data) => {
-                  console.log("presence:update ", data);
+                socket.on("presence:update", ({users}) => {
+                    document.getElementById("users").innerText = "Active Users: " + users.map(u => u.userId);
                 });
 
-                // 🔥 NEW: receive live updates
                 socket.on("doc:update", ({ content }) => {
                   document.getElementById("editor").value = content;
                 });
@@ -61,7 +59,6 @@
                 console.log("Left Document:", documentId);
             }
 
-            // 🔥 NEW: send changes
             const editor = document.getElementById("editor");
 
             editor.addEventListener("input", () => {
@@ -70,8 +67,12 @@
                 socket.emit("doc:change", {
                     documentId,
                     content: editor.value
-              });
+                });
             });
+
+            window.onload = () => {
+                createConnection();
+            }
       </script>
 </body>
 </html>
