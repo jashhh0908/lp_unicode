@@ -1,37 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
 </head>
 <body>
-  <h1>Document Collaboration Module</h1>
-  <button onclick="createConnection()">Create a WS Connection</button>
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    let socket;
-    let heartbeatInterval;
-    function createConnection() {
-      socket = io();
-      socket.on("presence:update", (data) => {
-        console.log("presence:update ", data);
-      });
-    } 
-    function startHeartbeat(documentId) {
-      heartbeatInterval = setInterval(() => {
-        socket.emit("heartbeat", {documentId});
-      },10000);
-    }
-    function leaveDoc(documentId) {
-      socket.emit("leaveDoc", {documentId});
-      if(heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-        heartbeatInterval = null;
-      }
+      <h1>Document Collaboration Module</h1>
 
-      console.log("Left Document: ", documentId);
-    }
-  </script>
+      <button onclick="createConnection()">Create WS Connection</button>
+      <button onclick="joinDocument()">Join Document</button>
+      <button onclick="leaveCurrentDoc()">Leave Document</button>
+
+      <br><br>
+
+      <textarea id="editor" rows="15" cols="80" placeholder="Start typing..."></textarea>
+      <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+      <script>
+            let socket;
+            let heartbeatInterval;
+            const documentId = "test-doc"; // static for now
+            const userId = "user-" + Math.floor(Math.random() * 1000);
+
+            function createConnection() {
+                socket = io();
+
+                socket.on("presence:update", (data) => {
+                  console.log("presence:update ", data);
+                });
+
+                // 🔥 NEW: receive live updates
+                socket.on("doc:update", ({ content }) => {
+                  document.getElementById("editor").value = content;
+                });
+            }
+
+            function joinDocument() {
+                socket.emit("joinDoc", { documentId, userId });
+                startHeartbeat(documentId);
+                console.log("Joined document:", documentId);
+            }
+
+            function startHeartbeat(documentId) {
+                heartbeatInterval = setInterval(() => {
+                  socket.emit("heartbeat", { documentId });
+                }, 10000);
+            }
+
+            function leaveCurrentDoc() {
+                leaveDoc(documentId);
+            }
+
+            function leaveDoc(documentId) {
+                socket.emit("leaveDoc", { documentId });
+                if (heartbeatInterval) {
+                    clearInterval(heartbeatInterval);
+                    heartbeatInterval = null;
+                }
+
+                console.log("Left Document:", documentId);
+            }
+
+            // 🔥 NEW: send changes
+            const editor = document.getElementById("editor");
+
+            editor.addEventListener("input", () => {
+                if (!socket) return;
+
+                socket.emit("doc:change", {
+                    documentId,
+                    content: editor.value
+              });
+            });
+      </script>
 </body>
 </html>
