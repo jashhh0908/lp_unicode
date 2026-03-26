@@ -86,7 +86,21 @@ io.on("connection", (socket) => {
         if(docSessions.delete(socket.id)) //.delete returns true/false depending on if the doc is removed or not
             console.log(`Socket ${socket.id} left document: ${documentId}`);
         socket.leave(documentId)
-        emitPresence(documentId);
+        emitPresence(documentId); //update the users still left in the room
+        
+        //update UI of the user who currently left showing active people except them
+        let users = [];
+        docSessions.forEach((data, clientId) => {
+            users.push({
+                clientId: clientId,
+                userId: data.userId,
+                lastActive: data.lastActive
+            });
+        });
+        socket.emit("presence:update", {
+            documentId: documentId,
+            users: users
+        })
     });
 
     socket.on("disconnect", ({documentId}) => {
