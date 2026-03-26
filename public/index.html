@@ -18,25 +18,35 @@
       <script>
             let socket;
             let heartbeatInterval;
-            const documentId = "test-doc"; // static for now
+            let insideDoc = false;
+            const documentId = "69bbe57121038c50714d4968"; // static for now
             const userId = "user-" + Math.floor(Math.random() * 1000);
+            const usersDiv = document.getElementById("users"); 
+            const editor = document.getElementById("editor");
+            editor.disabled = true;
 
             function createConnection() {
                 socket = io("http://localhost:5000");
 
                 socket.on("presence:update", ({users}) => {
-                    document.getElementById("users").innerText = "Active Users: " + users.map(u => u.userId);
+                    if(insideDoc)
+                        usersDiv.innerText = "Active Users: " + users.map(u => u.userId);
                 });
 
                 socket.on("doc:update", ({ content }) => {
-                  document.getElementById("editor").value = content;
+                    if(insideDoc)
+                        editor.value = content;
+                });
+
+                socket.on("error", ({ message }) => {
+                    console.error("Error:", message);
                 });
             }
 
             function joinDocument() {
+                if(insideDoc) return;
+                if(!socket) return;
                 socket.emit("joinDoc", { documentId, userId });
-                startHeartbeat(documentId);
-                console.log("Joined document:", documentId);
             }
 
             function startHeartbeat(documentId) {
@@ -55,23 +65,32 @@
                     clearInterval(heartbeatInterval);
                     heartbeatInterval = null;
                 }
-
+                editor.disabled = true;
+                editor.value = "";
+                usersDiv.innerText = "";
+                insideDoc = false;
                 console.log("Left Document:", documentId);
             }
 
-            const editor = document.getElementById("editor");
-
             editor.addEventListener("input", () => {
                 if (!socket) return;
-
-                socket.emit("doc:change", {
-                    documentId,
-                    content: editor.value
-                });
+                if(insideDoc)
+                    socket.emit("doc:change", {
+                        documentId,
+                        content: editor.value
+                    });
             });
 
             window.onload = () => {
                 createConnection();
+                socket.on("doc:load", (doc) => {
+                    insideDoc = true;
+                    editor.disabled = false;
+                    editor.value = doc.content;
+                    console.log("Joined document:", documentId);
+                    console.log("Loaded Doc: ", doc.title, doc.createdBy);
+                    startHeartbeat(documentId);
+            });
             }
       </script>
 </body>

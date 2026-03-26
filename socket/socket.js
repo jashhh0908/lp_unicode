@@ -1,3 +1,8 @@
+import mongoose from "mongoose";
+import DocumentModel from "../model/docModel.js";
+import dotenv from "dotenv";
+dotenv.config();
+
 export const useSocket = (io) => {
     const presenceMap = new Map();  
     function emitPresence(documentId) {
@@ -21,21 +26,35 @@ export const useSocket = (io) => {
 
     io.on("connection", (socket) => {
         console.log("A new user has connected", socket.id);
-        socket.on("joinDoc", ({documentId, userId}) => {
+        socket.on("joinDoc", async ({documentId, userId}) => {
             if(!documentId || !userId)
                 return;
-            socket.join(documentId);
+            try {
+                const document = await DocumentModel.findById(documentId).select("_id title content createdBy");
+                if(!document) {
+                    socket.emit("error", {message: "Document not found!"})
+                    return;
+                }
+                socket.join(documentId);
+                socket.emit("doc:load", document);
 
-            if(!presenceMap.has(documentId))
-                presenceMap.set(documentId, new Map());
+                if(!presenceMap.has(documentId))
+                    presenceMap.set(documentId, new Map());
 
-            presenceMap.get(documentId).set(socket.id, {
-                userId,
-                lastActive: Date.now()
-            });
+                presenceMap.get(documentId).set(socket.id, {
+                    userId,
+                    lastActive: Date.now()
+                });
 
-            console.log(`Socket ${socket.id} joined document: ${documentId} as ${userId}`);   
-            emitPresence(documentId);
+
+                console.log(`Socket ${socket.id} joined document: ${documentId} as ${userId}`);   
+                emitPresence(documentId);
+            } catch (err) {
+                console.log("Join Doc Error: ", err);
+                socket.emit("error", {message: "Failed to load document"});
+            }
+
+            
         });
         socket.on("doc:change", ({ documentId, content }) => {
             if (!documentId) return;
@@ -76,6 +95,8 @@ export const useSocket = (io) => {
                 documentId: documentId,
                 users: users
             })
+
+
         });
 
         socket.on("disconnect", () => {
@@ -99,7 +120,7 @@ export const useSocket = (io) => {
     //remove session if there is inactivity
     setInterval(() => {
         const currentTime = Date.now();
-        const timeout = NODE_ENV === 'development' ? 30*1000 : 5*60*1000;
+        const timeout = process.env.NODE_ENV === 'development' ? 30*1000 : 5*60*1000;
         for(const [docId, docSessions] of presenceMap.entries()) {
             let changed = false;
             for(const [clientId, data] of docSessions.entries()) {
