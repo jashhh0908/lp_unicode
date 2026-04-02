@@ -3,6 +3,8 @@ import DocumentModel from "../model/docModel.js";
 import dotenv from "dotenv";
 dotenv.config();
 
+const docStateMap = new Map();
+
 export const useSocket = (io) => {
     const presenceMap = new Map();  
     function emitPresence(documentId) {
@@ -35,6 +37,14 @@ export const useSocket = (io) => {
                     socket.emit("error", {message: "Document not found!"})
                     return;
                 }
+                if(!docStateMap.has(documentId)) {
+                    docStateMap.set(
+                        documentId, {
+                            content: document.content,
+                            lastUpdated: Date.now(),
+                            saveTimer: null 
+                    });
+                }
                 socket.join(documentId);
                 socket.emit("doc:load", document);
 
@@ -58,12 +68,28 @@ export const useSocket = (io) => {
         });
         socket.on("doc:change", ({ documentId, content }) => {
             if (!documentId) return;
+            
+            const docState = docStateMap.get(documentId);
+            if(!docState) return;
+            docState.content = content;
+            docState.lastUpdated = Date.now();
 
             // send updated content to everyone else in the room
-            socket.to(documentId).emit("doc:update", {
-                content
-            });
+            socket.to(documentId).emit("doc:update", {content});
+            if(docState.saveTimer) {
+                clearTimeout(docState.saveTimer);
+            }
+
+            docState.saveTimer = setTimeout(async () => {
+            try {
+                await DocumentModel.findByIdAndUpdate(documentId, {content: docState.content});
+                console.log(`Auto-saved doc ${documentId}`);
+              } catch (err) {
+                console.error("Auto-save failed:", err);
+              }
+            }, 2000);
         });
+
         socket.on("heartbeat", ({documentId}) => {
             const docSessions = presenceMap.get(documentId);
             if(!docSessions) return;
@@ -111,8 +137,13 @@ export const useSocket = (io) => {
                     emitPresence(docId);
                 }
 
-                if(docSessions.size === 0) //if the document room becomes empty on deletion then we delete it 
+                if(docSessions.size === 0) {//if the document room becomes empty on deletion then we delete it 
                     presenceMap.delete(docId);
+                    const docState = docStateMap.get(docId);
+                    if(docState?.saveTimer)
+                        clearTimeout(docState.saveTimer);
+                    docStateMap.delete(docId);
+                }
             }
         });
     });
