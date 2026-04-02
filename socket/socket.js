@@ -165,6 +165,10 @@ export const useSocket = (io) => {
                 emitPresence(docId);
             if(docSessions.size === 0) {
                 presenceMap.delete(docId);
+                const docState = docStateMap.get(docId);
+                if(docState?.saveTimer)
+                    clearTimeout(docState.saveTimer);
+                docStateMap.delete(docId);
             }
         }
     }, 30000);
