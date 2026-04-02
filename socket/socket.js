@@ -66,13 +66,16 @@ export const useSocket = (io) => {
 
             
         });
-        socket.on("doc:change", ({ documentId, content }) => {
+        socket.on("doc:change", ({ documentId, content, lastUpdated }) => {
             if (!documentId) return;
             
             const docState = docStateMap.get(documentId);
             if(!docState) return;
+
+            if(lastUpdated < docState.lastUpdated) return;
+
             docState.content = content;
-            docState.lastUpdated = Date.now();
+            docState.lastUpdated = lastUpdated;
 
             // send updated content to everyone else in the room
             socket.to(documentId).emit("doc:update", {content});

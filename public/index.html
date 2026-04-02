@@ -77,7 +77,8 @@
                 if(insideDoc)
                     socket.emit("doc:change", {
                         documentId,
-                        content: editor.value
+                        content: editor.value,
+                        lastUpdated: Date.now()
                     });
             });
 
