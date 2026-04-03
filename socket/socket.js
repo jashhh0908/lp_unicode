@@ -1,6 +1,7 @@
-import mongoose from "mongoose";
+import mongoose, { mongo } from "mongoose";
 import DocumentModel from "../model/docModel.js";
 import dotenv from "dotenv";
+import versionModel from "../model/versionModel.js";
 dotenv.config();
 
 const docStateMap = new Map();
@@ -31,6 +32,7 @@ export const useSocket = (io) => {
         socket.on("joinDoc", async ({documentId, userId}) => {
             if(!documentId || !userId)
                 return;
+            socket.userId = new mongoose.Types.ObjectId(userId);
             try {
                 const document = await DocumentModel.findById(documentId).select("_id title content createdBy");
                 if(!document) {
@@ -42,7 +44,8 @@ export const useSocket = (io) => {
                         documentId, {
                             content: document.content,
                             lastUpdated: Date.now(),
-                            saveTimer: null 
+                            saveTimer: null,
+                            lastVersionTime: Date.now()
                     });
                 }
                 socket.join(documentId);
@@ -86,6 +89,32 @@ export const useSocket = (io) => {
             docState.saveTimer = setTimeout(async () => {
             try {
                 await DocumentModel.findByIdAndUpdate(documentId, {content: docState.content});
+                const currentTime = Date.now();
+                if(currentTime - docState.lastVersionTime >= 5 * 60 * 1000) {
+                    const lastVersion = await versionModel.findOne({document: documentId});
+                    let newVersionNumber  = 1;
+                    if(lastVersion && lastVersion.versions.length > 0) {
+                        const latest  = lastVersion.versions[lastVersion.versions.length - 1];
+                        newVersionNumber = latest.versionNumber + 1;
+                    }
+
+                    await versionModel.updateOne({document: documentId}, {
+                        $push: {
+                            versions: {
+                                versionNumber: newVersionNumber,
+                                editedBy: socket.userId || "unknown",
+                                editedAt: new Date(),
+                                content: {
+                                    content: docState.content
+                                }
+                            }
+                        }
+                    },
+                    { upsert: true }
+                );
+                docState.lastVersionTime = currentTime;
+                console.log("Creating version...");
+                }
                 console.log(`Auto-saved doc ${documentId}`);
               } catch (err) {
                 console.error("Auto-save failed:", err);
