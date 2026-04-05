@@ -16,7 +16,13 @@ import { useSocket } from "./socket/socket.js";
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST", "PUT", "PATCH"],
+        credentials: true
+    }
+});
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 dotenv.config();
