@@ -45,7 +45,8 @@ export const useSocket = (io) => {
                             content: document.content,
                             lastUpdated: Date.now(),
                             saveTimer: null,
-                            lastVersionTime: Date.now()
+                            lastVersionTime: Date.now(),
+                            lastVersionContent: document.content
                     });
                 }
                 socket.join(documentId);
@@ -87,38 +88,50 @@ export const useSocket = (io) => {
             }
 
             docState.saveTimer = setTimeout(async () => {
-            try {
-                await DocumentModel.findByIdAndUpdate(documentId, {content: docState.content});
-                const currentTime = Date.now();
-                if(currentTime - docState.lastVersionTime >= 5 * 60 * 1000) {
-                    const lastVersion = await versionModel.findOne({document: documentId});
-                    let newVersionNumber  = 1;
-                    if(lastVersion && lastVersion.versions.length > 0) {
-                        const latest  = lastVersion.versions[lastVersion.versions.length - 1];
-                        newVersionNumber = latest.versionNumber + 1;
-                    }
+                console.log("⏳ Debounce triggered → attempting DB save");
+                try {
+                    await DocumentModel.findByIdAndUpdate(documentId, {content: docState.content});
+                    console.log("💾 DB WRITE COMPLETED");
+                    const currentTime = Date.now();
+                    const TIME_REQ_FOR_VERSION_CREATION = 5000;
+                    const LENGTH_REQ_FOR_VERSION_CREATION = 50;
+                    const timePassed = currentTime - docState.lastVersionTime;
+                    const significantChange = Math.abs(docState.content.length - docState.lastVersionContent.length);
+                    console.log("🧠 Version Check:", {
+                        timePassed,
+                        requiredTime: TIME_REQ_FOR_VERSION_CREATION,
+                        significantChange,
+                        requiredChange: LENGTH_REQ_FOR_VERSION_CREATION,
+                        currentLength: docState.content.length,
+                        lastVersionLength: docState.lastVersionContent.length
+                    });
+                    if(timePassed >= TIME_REQ_FOR_VERSION_CREATION && significantChange >= LENGTH_REQ_FOR_VERSION_CREATION && docState.content.trim().length > 0) { 
 
-                    await versionModel.updateOne({document: documentId}, {
-                        $push: {
-                            versions: {
-                                versionNumber: newVersionNumber,
-                                editedBy: socket.userId || "unknown",
-                                editedAt: new Date(),
-                                content: {
-                                    content: docState.content
+                        await versionModel.updateOne({document: documentId}, {
+                            $push: {
+                                versions: {
+                                    versionNumber: Date.now(),
+                                    editedBy: socket.userId || "unknown",
+                                    editedAt: new Date(),
+                                    content: {
+                                        content: docState.content
+                                    }
                                 }
                             }
-                        }
-                    },
-                    { upsert: true }
-                );
-                docState.lastVersionTime = currentTime;
-                console.log("Creating version...");
-                }
-                console.log(`Auto-saved doc ${documentId}`);
-              } catch (err) {
-                console.error("Auto-save failed:", err);
-              }
+                        },
+                        { upsert: true }
+                        );
+
+                        docState.lastVersionContent = docState.content;
+                        docState.lastVersionTime = currentTime;
+                        console.log("🆕 Version CREATED");
+                    } else {
+                       console.log("🚫 Version SKIPPED (conditions not met)");
+                    }
+                    console.log(`Auto-saved doc ${documentId}`);
+                  } catch (err) {
+                    console.error("Auto-save failed:", err);
+                  }
             }, 2000);
         });
 
@@ -157,7 +170,7 @@ export const useSocket = (io) => {
 
         });
 
-        socket.on("disconnect", () => {
+        socket.on("disconnect", async () => {
             console.log(`Socket ${socket.id} disconnected`);
             for(const [docId, docSessions] of presenceMap.entries()) { 
               /*
@@ -168,10 +181,30 @@ export const useSocket = (io) => {
                     console.log(`Removed ${socket.id} from document ${docId}`);
                     emitPresence(docId);
                 }
-
-                if(docSessions.size === 0) {//if the document room becomes empty on deletion then we delete it 
+                const docState = docStateMap.get(docId);
+                console.log("Users in room:", docSessions.size);
+                    if(docSessions.size === 0) {//if the document room becomes empty we save final version, clear timeouts and delete memory states
+                        if (docState && docState.content !== docState.lastVersionContent) {
+                            await versionModel.updateOne(
+                                { document: docId },
+                                {
+                                    $push: {
+                                        versions: {
+                                            versionNumber: Date.now(),
+                                            editedBy: "system",
+                                            editedAt: new Date(),
+                                            content: { content: docState.content }
+                                        }
+                                    }
+                                },
+                                { upsert: true }
+                            );
+                        
+                            console.log("Session-end version created");
+                        } else {
+                        console.log("🚫 Version SKIPPED (conditions not met)");
+                        }
                     presenceMap.delete(docId);
-                    const docState = docStateMap.get(docId);
                     if(docState?.saveTimer)
                         clearTimeout(docState.saveTimer);
                     docStateMap.delete(docId);
