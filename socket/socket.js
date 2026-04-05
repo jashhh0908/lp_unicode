@@ -95,7 +95,7 @@ export const useSocket = (io) => {
             docState.saveTimer = setTimeout(async () => {
                 console.log("attempting DB save");
                 try {
-                    await DocumentModel.findByIdAndUpdate(documentId, { content: docState.content });
+                    const updatedDoc = await DocumentModel.findByIdAndUpdate(documentId, { content: docState.content }, { new: true });
                     console.log("db updated");
                     const currentTime = Date.now();
                     const TIME_REQ_FOR_VERSION_CREATION = 5000;
@@ -118,9 +118,8 @@ export const useSocket = (io) => {
                         else
                             versionNumber = 1;
 
-                        const freshDoc = await DocumentModel.findById(documentId).select("title");
-                        docState.title = freshDoc.title;
-                        
+                        docState.title = updatedDoc.title;
+
                         const prevVersion = {
                             versionNumber,
                             editedBy: socket.userId,
@@ -205,7 +204,7 @@ export const useSocket = (io) => {
                 const SYS_ID = new mongoose.Types.ObjectId(process.env.SYS_ID);
                 if (docSessions.size === 0) {//if the document room becomes empty we save final version, clear timeouts and delete memory states
                     if (docState && docState.content !== docState.lastVersionContent) {
-                        await DocumentModel.findByIdAndUpdate(docId, { content: docState.content });
+                        const updatedDoc = await DocumentModel.findByIdAndUpdate(docId, { content: docState.content }, { new: true });
 
                         let doc_version = await versionModel.findOne({ document: docId });
                         let versionNumber;
@@ -214,9 +213,8 @@ export const useSocket = (io) => {
                         else
                             versionNumber = 1;
 
-                        const freshDoc = await DocumentModel.findById(docId).select("title");
-                        docState.title = freshDoc.title;                    
-                        
+                        docState.title = updatedDoc.title;
+
                         const finalVersion = {
                             versionNumber,
                             editedBy: SYS_ID,
