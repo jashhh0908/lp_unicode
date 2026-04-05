@@ -13,8 +13,8 @@ const versionSchema = new mongoose.Schema({
                 required: true
             },
             editedBy: {
-                type: String,
-               // ref: 'User'
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User'
             },
             editedAt: {
                 type: Date,

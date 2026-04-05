@@ -183,6 +183,7 @@ export const useSocket = (io) => {
                 }
                 const docState = docStateMap.get(docId);
                 console.log("Users in room:", docSessions.size);
+                const SYS_ID = new mongoose.Types.ObjectId(process.env.SYS_ID);
                 if(docSessions.size === 0) {//if the document room becomes empty we save final version, clear timeouts and delete memory states
                     if (docState && docState.content !== docState.lastVersionContent) {
                         await versionModel.updateOne(
@@ -191,7 +192,7 @@ export const useSocket = (io) => {
                                 $push: {
                                     versions: {
                                         versionNumber: Date.now(),
-                                        editedBy: "system",
+                                        editedBy: SYS_ID,
                                         editedAt: new Date(),
                                         content: { content: docState.content }
                                     }
