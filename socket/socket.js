@@ -88,16 +88,16 @@ export const useSocket = (io) => {
             }
 
             docState.saveTimer = setTimeout(async () => {
-                console.log("⏳ Debounce triggered → attempting DB save");
+                console.log("attempting DB save");
                 try {
                     await DocumentModel.findByIdAndUpdate(documentId, {content: docState.content});
-                    console.log("💾 DB WRITE COMPLETED");
+                    console.log("db updated");
                     const currentTime = Date.now();
                     const TIME_REQ_FOR_VERSION_CREATION = 5000;
                     const LENGTH_REQ_FOR_VERSION_CREATION = 50;
                     const timePassed = currentTime - docState.lastVersionTime;
                     const significantChange = Math.abs(docState.content.length - docState.lastVersionContent.length);
-                    console.log("🧠 Version Check:", {
+                    console.log("Version Check:", {
                         timePassed,
                         requiredTime: TIME_REQ_FOR_VERSION_CREATION,
                         significantChange,
@@ -124,9 +124,9 @@ export const useSocket = (io) => {
 
                         docState.lastVersionContent = docState.content;
                         docState.lastVersionTime = currentTime;
-                        console.log("🆕 Version CREATED");
+                        console.log("Version created");
                     } else {
-                       console.log("🚫 Version SKIPPED (conditions not met)");
+                       console.log("Version skipped (conditions not met)");
                     }
                     console.log(`Auto-saved doc ${documentId}`);
                   } catch (err) {
@@ -183,27 +183,26 @@ export const useSocket = (io) => {
                 }
                 const docState = docStateMap.get(docId);
                 console.log("Users in room:", docSessions.size);
-                    if(docSessions.size === 0) {//if the document room becomes empty we save final version, clear timeouts and delete memory states
-                        if (docState && docState.content !== docState.lastVersionContent) {
-                            await versionModel.updateOne(
-                                { document: docId },
-                                {
-                                    $push: {
-                                        versions: {
-                                            versionNumber: Date.now(),
-                                            editedBy: "system",
-                                            editedAt: new Date(),
-                                            content: { content: docState.content }
-                                        }
+                if(docSessions.size === 0) {//if the document room becomes empty we save final version, clear timeouts and delete memory states
+                    if (docState && docState.content !== docState.lastVersionContent) {
+                        await versionModel.updateOne(
+                            { document: docId },
+                            {
+                                $push: {
+                                    versions: {
+                                        versionNumber: Date.now(),
+                                        editedBy: "system",
+                                        editedAt: new Date(),
+                                        content: { content: docState.content }
                                     }
-                                },
-                                { upsert: true }
-                            );
-                        
-                            console.log("Session-end version created");
-                        } else {
-                        console.log("🚫 Version SKIPPED (conditions not met)");
-                        }
+                                }
+                            },
+                            { upsert: true }
+                        );
+                        console.log("Session-end version created");
+                    } else {
+                        console.log("Version skipped (conditions not met)");
+                    }
                     presenceMap.delete(docId);
                     if(docState?.saveTimer)
                         clearTimeout(docState.saveTimer);
