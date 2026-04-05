@@ -186,6 +186,8 @@ export const useSocket = (io) => {
                 const SYS_ID = new mongoose.Types.ObjectId(process.env.SYS_ID);
                 if(docSessions.size === 0) {//if the document room becomes empty we save final version, clear timeouts and delete memory states
                     if (docState && docState.content !== docState.lastVersionContent) {
+                        await DocumentModel.findByIdAndUpdate(docId, {content: docState.content});
+                        
                         await versionModel.updateOne(
                             { document: docId },
                             {
