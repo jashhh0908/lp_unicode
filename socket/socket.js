@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import DocumentModel from "../model/docModel.js";
 import dotenv from "dotenv";
 import versionModel from "../model/versionModel.js";
+import { updateAndVersionDocument } from "../services/docService.js";
 dotenv.config();
 
 const docStateMap = new Map();
@@ -95,7 +96,7 @@ export const useSocket = (io) => {
             docState.saveTimer = setTimeout(async () => {
                 console.log("attempting DB save");
                 try {
-                    const updatedDoc = await DocumentModel.findByIdAndUpdate(documentId, { content: docState.content }, { new: true });
+                    const freshDoc = await DocumentModel.findById(documentId).select("title");
                     console.log("db updated");
                     const currentTime = Date.now();
                     const TIME_REQ_FOR_VERSION_CREATION = 5000;
@@ -111,39 +112,21 @@ export const useSocket = (io) => {
                         lastVersionLength: docState.lastVersionContent.length
                     });
                     if (timePassed >= TIME_REQ_FOR_VERSION_CREATION && significantChange >= LENGTH_REQ_FOR_VERSION_CREATION && docState.content.trim().length > 0) {
-                        let doc_version = await versionModel.findOne({ document: documentId });
-                        let versionNumber;
-                        if (doc_version)
-                            versionNumber = doc_version.versions.length + 1;
-                        else
-                            versionNumber = 1;
+                        const updatedDoc = await updateAndVersionDocument(
+                            documentId,
+                            socket.userId,
+                            freshDoc.title,                // newTitle
+                            docState.content,              // newContent
+                            freshDoc.title,                // prevTitle (Socket doesn't change title yet)
+                            docState.lastVersionContent    // prevContent
+                        );
 
                         docState.title = updatedDoc.title;
-
-                        const prevVersion = {
-                            versionNumber,
-                            editedBy: socket.userId,
-                            editedAt: new Date(),
-                            content: {
-                                title: docState.title,
-                                content: docState.lastVersionContent
-                            }
-                        }
-
-                        if (!doc_version) {
-                            await versionModel.create({
-                                document: documentId,
-                                versions: [prevVersion]
-                            });
-                        } else {
-                            doc_version.versions.push(prevVersion);
-                            await doc_version.save();
-                        }
-
                         docState.lastVersionContent = docState.content;
                         docState.lastVersionTime = currentTime;
                         console.log("Version created");
                     } else {
+                        await DocumentModel.findByIdAndUpdate(documentId, { content: docState.content });
                         console.log("Version skipped (conditions not met)");
                     }
                     console.log(`Auto-saved doc ${documentId}`);
@@ -204,37 +187,19 @@ export const useSocket = (io) => {
                 const SYS_ID = new mongoose.Types.ObjectId(process.env.SYS_ID);
                 if (docSessions.size === 0) {//if the document room becomes empty we save final version, clear timeouts and delete memory states
                     if (docState && docState.content !== docState.lastVersionContent) {
-                        const updatedDoc = await DocumentModel.findByIdAndUpdate(docId, { content: docState.content }, { new: true });
+                        const freshDoc = await DocumentModel.findById(docId).select("title");
 
-                        let doc_version = await versionModel.findOne({ document: docId });
-                        let versionNumber;
-                        if (doc_version)
-                            versionNumber = doc_version.versions.length + 1;
-                        else
-                            versionNumber = 1;
+                        const updatedDoc = await updateAndVersionDocument(
+                            docId,
+                            SYS_ID,
+                            freshDoc.title,                // newTitle
+                            docState.content,              // newContent
+                            freshDoc.title,                // prevTitle (Socket doesn't change title yet)
+                            docState.lastVersionContent    // prevContent
+                        );
 
                         docState.title = updatedDoc.title;
-
-                        const finalVersion = {
-                            versionNumber,
-                            editedBy: SYS_ID,
-                            editedAt: new Date(),
-                            content: {
-                                title: docState.title,
-                                content: docState.lastVersionContent
-                            }
-                        };
-
-                        if (!doc_version) {
-                            await versionModel.create({
-                                document: docId,
-                                versions: [finalVersion]
-                            });
-                        } else {
-                            doc_version.versions.push(finalVersion);
-                            await doc_version.save();
-                        }
-
+                        docState.lastVersionContent = docState.content;
                         console.log("Session-end version created");
                     } else {
                         console.log("Version skipped (conditions not met)");
