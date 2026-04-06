@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Dashboard() {
-    const dummyUser = { name: 'test user' };
+    const { user } = useAuth();
     const systemStatus = 'connected';
 
     return (
@@ -25,7 +26,7 @@ export default function Dashboard() {
             </header>
 
             <div className="max-w-4xl mx-auto mt-20 text-center">
-                <h2 className="text-4xl font-bold mb-4">Welcome back, {dummyUser.name}</h2>
+                <h2 className="text-4xl font-bold mb-4">Welcome back, {user.userInfo.name}</h2>
                 <p className="text-slate-400 text-lg">Your dashboard and real-time map data will appear here.</p>
             </div>
         </div>

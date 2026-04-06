@@ -3,12 +3,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import { useState } from 'react';
 import { login } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const { loginSession } = useAuth();
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -16,6 +19,7 @@ export default function LoginPage() {
             console.log("Sending login payload");
             const data = await login(email, password);
             console.log('Success: ', data);
+            loginSession(data);
             navigate('/dashboard')
         } catch (err) {
             console.error("Error from backend:", err);
