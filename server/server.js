@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import { Server } from "socket.io";
 import path from "path";
 import http from "http";
@@ -31,6 +32,7 @@ dotenv.config();
 useSocket(io);
 
 //middleware
+app.use(cors({ origin: ["http://localhost:5173", "http://127.0.0.1:5173"], credentials: true }));
 app.use(cookieParser());
 app.use(express.json());
 
