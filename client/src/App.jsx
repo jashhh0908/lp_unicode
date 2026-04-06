@@ -3,6 +3,7 @@ import LoginPage from './pages/Login.jsx';
 import SignupPage from './pages/SignUp.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
+import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 
 export default function App() {
     return (
@@ -12,7 +13,11 @@ export default function App() {
                     <Route path="/" element={<Navigate to="/login" replace />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/signup" element={<SignupPage />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/dashboard" element={
+                        <ProtectedRoute>
+                            <Dashboard />
+                        </ProtectedRoute> 
+                    }/>
                 </Routes>
             </Router>
         </AuthProvider>
