@@ -1,10 +1,15 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Dashboard() {
-    const { user } = useAuth();
+    const { user, logoutSession } = useAuth();
+    const navigate = useNavigate();
     const systemStatus = 'connected';
 
+    const handleLogout = () => {
+        logoutSession();
+        navigate('/login');
+    };
     return (
         <div className="min-h-screen bg-slate-900 text-white p-8 font-sans">
             <header className="flex justify-between items-center mb-12">
@@ -16,12 +21,12 @@ export default function Dashboard() {
                         <div className={`h-2 w-2 rounded-full ${systemStatus === 'connected' ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`}></div>
                         <span className="text-slate-300 uppercase">{systemStatus}</span>
                     </div>
-                    <Link 
-                        to="/login"
+                    <button
+                        onClick={handleLogout}
                         className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors border border-slate-700 block"
                     >
                         Sign Out
-                    </Link>
+                    </button>
                 </div>
             </header>
 
