@@ -1,11 +1,32 @@
 import { Mail, Lock, User, Calendar, CreditCard, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
+import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { register } from '../services/authService';
 
 export default function SignupPage() {
-    const handleSubmit = (e) => {
+    const [name, setName] = useState('');
+    const [dob, setDob] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const navigate = useNavigate();
+    const {loginSession}= useAuth();
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log("Signup submitted");
+        setError('');
+        try {
+            console.log("Sending register payload");
+            const data = await register(name, email, dob, password);
+            console.log("Success: ", data);
+            loginSession(data);
+            navigate('/dashboard');
+        } catch (err) {
+            console.error("Error from backend:", err);
+            setError(err.response?.data?.error || err.response?.data?.message || 'Registering failed. Try again.');
+        }
     };
 
     return (
@@ -25,9 +46,10 @@ export default function SignupPage() {
                     <input 
                         type="text" 
                         required
+                        value={name}
                         placeholder="Full Name" 
                         className="w-full h-full pl-11 pr-4 bg-white/50 border border-slate-200/80 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400 shadow-sm"
-                        onChange={() => {}}
+                        onChange={(e) => setName(e.target.value)}
                     />
                 </div>
 
@@ -36,19 +58,9 @@ export default function SignupPage() {
                     <input 
                         type="date" 
                         required
+                        value={dob}
                         className="w-full h-full pl-11 pr-4 bg-white/50 border border-slate-200/80 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all text-slate-600 shadow-sm"
-                        onChange={() => {}}
-                    />
-                </div>
-
-                <div className="relative h-12 mb-5">
-                    <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
-                    <input 
-                        type="number" 
-                        required
-                        placeholder="Credit Score" 
-                        className="w-full h-full pl-11 pr-4 bg-white/50 border border-slate-200/80 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400 shadow-sm"
-                        onChange={() => {}}
+                        onChange={(e) => setDob(e.target.value)}
                     />
                 </div>
 
@@ -57,9 +69,10 @@ export default function SignupPage() {
                     <input 
                         type="email" 
                         required
+                        value={email}
                         placeholder="Email Address" 
                         className="w-full h-full pl-11 pr-4 bg-white/50 border border-slate-200/80 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400 shadow-sm"
-                        onChange={() => {}}
+                        onChange={(e) => setEmail(e.target.value)}
                     />
                 </div>
 
@@ -68,9 +81,10 @@ export default function SignupPage() {
                     <input 
                         type="password" 
                         required
+                        value={password}
                         placeholder="Password" 
                         className="w-full h-full pl-11 pr-4 bg-white/50 border border-slate-200/80 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400 shadow-sm"
-                        onChange={() => {}}
+                        onChange={(e) => setPassword(e.target.value)}
                     />
                 </div>
 
