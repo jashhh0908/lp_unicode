@@ -10,8 +10,11 @@ export const getDocuments = async () => {
     return response.data;
 }
 
-
 export const updateDocument = async (id, title, content) => {
     const response = await api.patch(`/document/update/${id}`, {title, content});
     return response.data;
+}
+
+export const deleteDocument = async (id) => {
+    await api.delete(`document/delete/${id}`);
 }

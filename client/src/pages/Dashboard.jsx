@@ -1,12 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Plus, LogOut, Clock, MoreVertical } from 'lucide-react';
+import { FileText, Plus, LogOut, Clock, MoreVertical, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { createDocument, getDocuments } from '../services/docService';
+import { createDocument, deleteDocument, getDocuments } from '../services/docService';
 
 export default function Dashboard() {
     const [docs, setDocs] = useState([]);
-
+    const [dropDownMenu, setDropDownMenu] = useState(null);
     const { user, logoutSession } = useAuth();
     const navigate = useNavigate();
 
@@ -27,6 +27,18 @@ export default function Dashboard() {
             console.error("Failed to implicitly create document:", error);
         }
     }
+
+    const handleDeleteDocument = async (e, id) => {
+        e.stopPropagation();
+        try {
+            await deleteDocument(id);
+            setDocs(docs => docs.filter(doc => doc._id !== id));
+            setDropDownMenu(null);
+        } catch (error) {
+            console.error("Failed to delete document:", error);
+        }
+    }
+
     useEffect(() => {
         const fetchUserDocs = async () => {
             try {
@@ -42,6 +54,10 @@ export default function Dashboard() {
         } else {
             console.error("Login first");
         }
+
+        const closeDropdown = () => setDropDownMenu(null);
+        window.addEventListener('click', closeDropdown);
+        return () => window.removeEventListener('click', closeDropdown);
     }, [user.userInfo.id])
 
     return (
@@ -99,8 +115,27 @@ export default function Dashboard() {
                     {docs.map((doc) => (
                         <div key={doc._id} onClick={() => navigate(`/document/${doc._id}`)} className="flex flex-col h-64 bg-white border border-slate-200 rounded-2xl hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all cursor-pointer overflow-hidden group">
                             <div className="flex-1 bg-slate-50 border-b border-slate-100 p-5 relative overflow-hidden">
-                                <div className="absolute top-4 right-4 p-1.5 hover:bg-slate-200 rounded-lg transition-colors text-slate-400 z-10">
-                                    <MoreVertical className="h-5 w-5" />
+                                <div className="absolute top-4 right-4 z-10">
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDropDownMenu(dropDownMenu === doc._id ? null : doc._id);
+                                        }}
+                                        className="p-1.5 hover:bg-slate-200 rounded-lg transition-colors text-slate-400 focus:outline-none"
+                                    >
+                                        <MoreVertical className="h-5 w-5" />
+                                    </button>
+                                    {dropDownMenu === doc._id && (
+                                        <div className="absolute right-0 mt-1 w-36 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-20">
+                                            <button
+                                                onClick={(e) => handleDeleteDocument(e, doc._id)}
+                                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+                                            >
+                                                <Trash2 className="w-4 h-4 mr-2" />
+                                                Delete
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="space-y-3 mt-2 opacity-30 group-hover:opacity-60 transition-opacity">
                                     <div className="h-2.5 bg-slate-400 rounded-full w-3/4"></div>
