@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FileText, Plus, LogOut, Clock, MoreVertical } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { getDocuments } from '../services/docService';
+import { createDocument, getDocuments } from '../services/docService';
 
 export default function Dashboard() {
     const [docs, setDocs] = useState([]);
@@ -14,9 +14,19 @@ export default function Dashboard() {
         logoutSession();
         navigate('/login');
     };
-     
+
     const displayName = user?.userInfo?.name?.split(' ')[0] || 'there';
 
+    const handleCreateDocument = async () => {
+        try {
+            const data = await createDocument("Untitled Document", "");
+            const new_doc_id = data.document._id;
+            if (new_doc_id)
+                navigate(`/document/${new_doc_id}`);
+        } catch (error) {
+            console.error("Failed to implicitly create document:", error);
+        }
+    }
     useEffect(() => {
         const fetchUserDocs = async () => {
             try {
@@ -27,7 +37,7 @@ export default function Dashboard() {
             }
         }
 
-        if(user.userInfo.id) {
+        if (user.userInfo.id) {
             fetchUserDocs();
         } else {
             console.error("Login first");
@@ -45,7 +55,7 @@ export default function Dashboard() {
                         Workspace
                     </h1>
                 </div>
-                
+
                 <div className="flex items-center space-x-6">
                     <div className="text-sm font-semibold text-slate-600 flex items-center space-x-2">
                         <div className="h-8 w-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold shadow-md">
@@ -65,7 +75,7 @@ export default function Dashboard() {
             </header>
 
             <main className="max-w-6xl mx-auto px-6 py-12">
-                
+
                 <div className="flex justify-between items-end mb-8">
                     <div>
                         <h2 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">
@@ -76,15 +86,18 @@ export default function Dashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    <button className="flex flex-col items-center justify-center h-64 bg-white border-2 border-dashed border-slate-300 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50/50 transition-all group flex-shrink-0 cursor-pointer text-slate-500 hover:text-indigo-600 shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/20">
+                    <button
+                        onClick={handleCreateDocument}
+                        className="flex flex-col items-center justify-center h-64 bg-white border-2 border-dashed border-slate-300 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50/50 transition-all group flex-shrink-0 cursor-pointer text-slate-500 hover:text-indigo-600 shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/20"
+                    >
                         <div className="p-4 bg-slate-100 group-hover:bg-indigo-100 rounded-full mb-4 transition-colors">
                             <Plus className="h-6 w-6" />
                         </div>
-                        <span className="font-semibold">Blank Document</span>
+                        <span className="font-semibold">New Document</span>
                     </button>
 
                     {docs.map((doc) => (
-                        <div key={doc.id} className="flex flex-col h-64 bg-white border border-slate-200 rounded-2xl hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all cursor-pointer overflow-hidden group">
+                        <div key={doc._id} onClick={() => navigate(`/document/${doc._id}`)} className="flex flex-col h-64 bg-white border border-slate-200 rounded-2xl hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all cursor-pointer overflow-hidden group">
                             <div className="flex-1 bg-slate-50 border-b border-slate-100 p-5 relative overflow-hidden">
                                 <div className="absolute top-4 right-4 p-1.5 hover:bg-slate-200 rounded-lg transition-colors text-slate-400 z-10">
                                     <MoreVertical className="h-5 w-5" />
@@ -97,14 +110,14 @@ export default function Dashboard() {
                                     <div className="h-2.5 bg-slate-400 rounded-full w-2/3"></div>
                                 </div>
                             </div>
-                            
+
                             <div className="p-5">
                                 <h3 className="font-bold text-slate-800 truncate mb-1.5">{doc.title}</h3>
-                                
+
                             </div>
                         </div>
                     ))}
-                    
+
                 </div>
             </main>
         </div>

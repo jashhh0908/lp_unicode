@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import LoginPage from './pages/Login.jsx';
 import SignupPage from './pages/SignUp.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import DocumentEditor from './pages/DocumentEditor.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 
@@ -17,6 +18,11 @@ export default function App() {
                         <ProtectedRoute>
                             <Dashboard />
                         </ProtectedRoute> 
+                    }/>
+                    <Route path="/document/:id" element={
+                        <ProtectedRoute>
+                            <DocumentEditor />
+                        </ProtectedRoute>
                     }/>
                 </Routes>
             </Router>
