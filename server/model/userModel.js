@@ -18,10 +18,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    credit_scores: {
-        type: Number,
-        required: true
-    },
+    // credit_scores: {
+    //     type: Number,
+    //     required: true
+    // },
     profile_image: {
         type: String,
         default: null

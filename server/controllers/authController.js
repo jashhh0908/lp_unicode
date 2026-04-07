@@ -9,15 +9,14 @@ import mail from "../utils/mailer.js";
 import uploadToCloudinary from '../utils/cloudinary.js';
 async function register(req, res, next) {
     try {
-        const { name, email, dob, password, credit_scores } = req.body;
+        const { name, email, dob, password } = req.body;
         const salt = await bcrypt.genSalt(10);
         const hashedPass = await bcrypt.hash(String(password), salt);
         const registerUser = await userModel.create({
             name,
             email,
             dob,
-            password: hashedPass,
-            credit_scores,
+            password: hashedPass
         })
     
         await mail(
@@ -41,7 +40,7 @@ async function register(req, res, next) {
         res.status(201).json({
             message: "User registered successfully",
             token: accessToken,
-            user: {
+            userInfo: {
                 id: registerUser._id,
                 name: registerUser.name,
                 email: registerUser.email
