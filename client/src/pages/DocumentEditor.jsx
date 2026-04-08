@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Download } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { getDocuments, updateDocument } from '../services/docService';
+import { getDocuments, updateDocument, exportDocument } from '../services/docService';
 
 export default function DocumentEditor() {
     const { id } = useParams();
@@ -10,6 +10,8 @@ export default function DocumentEditor() {
     const [title, setTitle] = useState("Loading...");
     const [content, setContent] = useState("");
     const [isSaving, setIsSaving] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+
     const handleSave = async () => {
         try {
             setIsSaving(true);
@@ -21,6 +23,26 @@ export default function DocumentEditor() {
             setIsSaving(false);
         }    
     }
+
+    const handleExport = async () => {
+        try {
+            setIsExporting(true);
+            const blob = await exportDocument(id);
+            const url = window.URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${title || 'document'}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Failed to export PDF:", error);
+        } finally {
+            setIsExporting(false);
+        }
+    }
+
     useEffect(() => {
         const loadDocument = async () => {
             try {
@@ -71,11 +93,21 @@ export default function DocumentEditor() {
 
                 <div className="flex items-center space-x-4">
                     <button 
+                        onClick={handleExport}
+                        disabled={isExporting}
+                        className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 px-3 py-2 rounded-lg font-medium text-sm flex items-center transition-colors"
+                        title="Download as PDF"
+                    >
+                        <Download className="w-4 h-4 mr-2"/>
+                        {isExporting ? "Exporting..." : "Export"}
+                    </button>
+                    <button 
                         onClick={handleSave}
-                        className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-4 py-2 rounded-full font-medium text-sm flex items-center transition-colors"
+                        disabled={isSaving}
+                        className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-4 py-2 rounded-full font-medium text-sm flex items-center transition-colors shadow-sm"
                     >
                         <Save className="w-4 h-4 mr-2"/>
-                        Save
+                        {isSaving ? "Saving..." : "Save"}
                      </button>
                      <div className="h-8 w-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold shadow-md cursor-pointer">
                         U

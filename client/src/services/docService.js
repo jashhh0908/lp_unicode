@@ -18,3 +18,8 @@ export const updateDocument = async (id, title, content) => {
 export const deleteDocument = async (id) => {
     await api.delete(`document/delete/${id}`);
 }
+
+export const exportDocument = async (id) => {
+    const response = await api.get(`/document/${id}/export/pdf`, { responseType: 'blob' });
+    return response.data;
+}
