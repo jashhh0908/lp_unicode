@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Plus, LogOut, Clock, MoreVertical, Trash2 } from 'lucide-react';
+import { FileText, Plus, LogOut, Clock, MoreVertical, Trash2, Copy, ExternalLink } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createDocument, deleteDocument, getDocuments } from '../services/docService';
 
@@ -28,10 +28,27 @@ export default function Dashboard() {
         }
     }
 
+    const handleDuplication = async (e, doc) => {
+        e.stopPropagation();
+        try {
+            setDropDownMenu(null);
+            const newTitle = `Copy of ${doc.title}`;
+
+            const data = await createDocument(newTitle, doc.content);
+            const newDoc = data.document;
+            if(newDoc) {
+                setDocs(docs => [...docs, newDoc]);
+            }
+        } catch (error) {
+            console.error("Failed to duplicate document:", error);
+        }
+    }
+
     const handleDeleteDocument = async (e, id) => {
         e.stopPropagation();
         try {
             await deleteDocument(id);
+            console.log("Deletion successful");
             setDocs(docs => docs.filter(doc => doc._id !== id));
             setDropDownMenu(null);
         } catch (error) {
@@ -113,8 +130,10 @@ export default function Dashboard() {
                     </button>
 
                     {docs.map((doc) => (
-                        <div key={doc._id} onClick={() => navigate(`/document/${doc._id}`)} className="flex flex-col h-64 bg-white border border-slate-200 rounded-2xl hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all cursor-pointer overflow-hidden group">
-                            <div className="flex-1 bg-slate-50 border-b border-slate-100 p-5 relative overflow-hidden">
+                        <div key={doc._id} onClick={() => navigate(`/document/${doc._id}`)} className="flex flex-col h-64 bg-white border border-slate-200 rounded-2xl hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all cursor-pointer group">
+                            <div className="flex-1 bg-slate-50 border-b border-slate-100 p-5 relative rounded-t-2xl">
+
+                            {/* <div className="flex-1 bg-slate-50 border-b border-slate-100 p-5 relative overflow-hidden"> */}
                                 <div className="absolute top-4 right-4 z-10">
                                     <button 
                                         onClick={(e) => {
@@ -126,13 +145,32 @@ export default function Dashboard() {
                                         <MoreVertical className="h-5 w-5" />
                                     </button>
                                     {dropDownMenu === doc._id && (
-                                        <div className="absolute right-0 mt-1 w-36 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-20">
+                                        <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl py-1.5 z-20 overflow-hidden font-medium">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setDropDownMenu(null);
+                                                    window.open(`/document/${doc._id}`, '_blank');
+                                                }}
+                                                className="w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-3 transition-colors text-left"
+                                            >
+                                                <ExternalLink className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                                <span className="whitespace-nowrap">Open in new tab</span>
+                                            </button>
+                                            <button
+                                                onClick={(e) => handleDuplication(e, doc)}
+                                                className="w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-3 transition-colors text-left"
+                                            >
+                                                <Copy className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                                <span className="whitespace-nowrap">Duplicate</span>
+                                            </button>
+                                            <div className="h-px bg-slate-200 my-1.5 mx-2"></div>
                                             <button
                                                 onClick={(e) => handleDeleteDocument(e, doc._id)}
-                                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+                                                className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 flex items-center gap-3 transition-colors text-left group"
                                             >
-                                                <Trash2 className="w-4 h-4 mr-2" />
-                                                Delete
+                                                <Trash2 className="w-4 h-4 text-red-400 group-hover:text-red-600 flex-shrink-0" />
+                                                <span className="whitespace-nowrap">Delete</span>
                                             </button>
                                         </div>
                                     )}
