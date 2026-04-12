@@ -3,6 +3,7 @@ import { X, UserPlus, Users, Check, Clock, Shield, User, Mail, ChevronDown, Tras
 import { useEffect } from 'react';
 import { getDocCollaborators, addUserAccess, approveRequest, removeUserAccess } from '../services/docService';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 
 const getInitials = (name) => {
     if (!name) return "?";
@@ -19,6 +20,7 @@ export default function ShareModal({ isOpen, onClose, docTitle, id }) {
     const [isLoading, setIsLoading] = useState(false);
     const { user: currentUser } = useAuth();
 
+    const socket = useSocket();
     const handleInvite = async () => {
         try {
             await addUserAccess(id, email, accessType);
@@ -49,12 +51,20 @@ export default function ShareModal({ isOpen, onClose, docTitle, id }) {
     };
 
     useEffect(() => {
-        if(isOpen) {
-            fetchCollaborators();
+        if (isOpen) {
+            fetchCollaborators(); 
         }
-
-
     }, [isOpen, id]);
+    useEffect(() => {
+        if (!socket || !isOpen) return;
+        const handleUpdate = () => fetchCollaborators();
+        socket.on("doc:access:request", handleUpdate);
+        socket.on("doc:access:update", handleUpdate);
+        return () => {
+            socket.off("doc:access:request", handleUpdate);
+            socket.off("doc:access:update", handleUpdate);
+        };
+    }, [socket, isOpen]);
 
     const fetchCollaborators = async () => {
         try {
@@ -80,7 +90,7 @@ export default function ShareModal({ isOpen, onClose, docTitle, id }) {
 
             setOwner(data.owner);
             setCollaborators(finalCollaborators);
-            setRequests(data.requests);
+            setRequests(data.requests.filter(req => req.status === 'pending'));
         } catch (error) {
             console.error("Failed to fetch collaborators:", error);
         } finally {

@@ -6,6 +6,7 @@ import versionModel from "../model/versionModel.js";
 import mail from "../utils/mailer.js";
 import PDFDocument from "pdfkit";
 import { updateAndVersionDocument } from "../services/docService.js";
+import { io } from "../server.js";
 
 const createDocument = async (req, res, next) => {
     try {
@@ -131,6 +132,7 @@ const requestAccess = async (req, res, next) => {
 
         await document.save();
 
+        io.to(docID).emit("doc:access:request", { docID });
         const requesting_user = await userModel.findById(userID);
 
         await mail(
@@ -189,6 +191,7 @@ const approveRequest = async (req, res, next) => {
         }
 
         await document.save();
+        io.to(docID).emit("doc:access:update", { docID });
         res.status(200).json({
             message: `Request ${action}d successfully.`,
             update: document.requests[reqIndex]
@@ -236,6 +239,7 @@ const addUserAccess = async (req, res, next) => {
         }
 
         await document.save();
+        io.to(docID).emit("doc:access:update", { docID });
         res.status(200).json({
             message: `${type}ing access given successfully`,
             userID: userID_toAdd,
@@ -278,6 +282,7 @@ const removeUserAccess = async (req, res, next) => {
         }
 
         await document.save();
+        io.to(docId).emit("doc:access:update", { docId });
         res.status(200).json({
             message: `${type}ing access revoked successfully`,
             userID: userIdToRemove,
