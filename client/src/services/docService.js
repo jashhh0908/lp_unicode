@@ -34,6 +34,10 @@ export const addUserAccess = async (id, email, type) => {
     return response.data;
 };
 
+export const removeUserAccess = async(id, email, type) => {
+    const response = await api.patch(`/document/remove-user-access/${id}`, { email, type });
+    return response.data;
+}
 export const approveRequest = async (id, data) => {
     const response = await api.patch(`/document/approve-request/${id}`, data);
     return response.data;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, UserPlus, Users, Check, Clock, Shield, User, Mail, ChevronDown } from 'lucide-react';
+import { X, UserPlus, Users, Check, Clock, Shield, User, Mail, ChevronDown, Trash2 } from 'lucide-react';
 import { useEffect } from 'react';
-import { getDocCollaborators, addUserAccess, approveRequest } from '../services/docService';
+import { getDocCollaborators, addUserAccess, approveRequest, removeUserAccess } from '../services/docService';
 import { useAuth } from '../context/AuthContext';
 
 const getInitials = (name) => {
@@ -38,7 +38,15 @@ export default function ShareModal({ isOpen, onClose, docTitle, id }) {
         }
     };
 
-    
+    const handleRemoveAccess = async (email, type) => {
+        try {
+            await removeUserAccess(id, email, type);
+            fetchCollaborators(); 
+            console.log(`User ${type}ing removed successully`)
+        } catch (error) {
+            alert(error.response?.data?.error || "Failed to remove access");
+        }
+    };
 
     useEffect(() => {
         if(isOpen) {
@@ -54,12 +62,10 @@ export default function ShareModal({ isOpen, onClose, docTitle, id }) {
             const data = await getDocCollaborators(id);
             const roleMap = new Map();
 
-            // Add Viewers
             data.collaborators.view.forEach(u => {
                 roleMap.set(u._id, { ...u, roles: ['Viewer'] });
             });
 
-            // Add Editors (Merge if already exists)
             data.collaborators.edit.forEach(u => {
                 if (roleMap.has(u._id)) {
                     roleMap.get(u._id).roles.push('Editor');
@@ -68,7 +74,6 @@ export default function ShareModal({ isOpen, onClose, docTitle, id }) {
                 }
             });
 
-            // Convert to array and filter out the logged-in user
             const finalCollaborators = Array.from(roleMap.values()).filter(u => 
                 u._id !== currentUser.userInfo.id 
             );
@@ -87,15 +92,12 @@ export default function ShareModal({ isOpen, onClose, docTitle, id }) {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            {/* Backdrop */}
             <div 
                 className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300"
                 onClick={onClose}
             ></div>
 
-            {/* Modal */}
             <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                {/* Header */}
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                     <div>
                         <h2 className="text-xl font-bold text-slate-800">Share "{docTitle}"</h2>
@@ -109,7 +111,6 @@ export default function ShareModal({ isOpen, onClose, docTitle, id }) {
                     </button>
                 </div>
 
-                {/* Tabs */}
                 <div className="flex px-6 pt-2 border-b border-slate-100">
                     <button 
                         onClick={() => setActiveTab('people')}
@@ -138,7 +139,6 @@ export default function ShareModal({ isOpen, onClose, docTitle, id }) {
                     </button>
                 </div>
 
-                {/* Content */}
                 <div className="max-h-[450px] overflow-y-auto">
                     {activeTab === 'people' ? (
                         <div className="p-6 space-y-6">
@@ -174,12 +174,11 @@ export default function ShareModal({ isOpen, onClose, docTitle, id }) {
                                         onClick={handleInvite}
                                         className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md shadow-indigo-100 flex-shrink-0"
                                     >
-                                        Invite
+                                        Add
                                     </button>
                                 </div>
                             </div>
 
-                            {/* People List */}
                             <div className="space-y-3">
                                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Active Collaborators</h3>
                                 <div className="space-y-1">
@@ -196,9 +195,20 @@ export default function ShareModal({ isOpen, onClose, docTitle, id }) {
                                             </div>
                                             <div className="flex items-center space-x-2">
                                                 {person.roles.map(role => (
-                                                    <span key={role} className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-tight bg-indigo-50 text-indigo-600 border border-indigo-100">
-                                                        {role}
-                                                    </span>
+                                                    <div key={role} className="flex items-center gap-2">
+                                                        <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-tight bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                                            {role}
+                                                        </span>
+                                                        {currentUser?.userInfo?.id === owner?._id && (
+                                                            <button 
+                                                                onClick={() => handleRemoveAccess(person.email, role === 'Viewer' ? 'view' : 'edit')}
+                                                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-all opacity-0 group-hover:opacity-100"
+                                                                title={`Remove ${role} access`}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 ))}
                                             </div>
                                         </div>
@@ -256,12 +266,7 @@ export default function ShareModal({ isOpen, onClose, docTitle, id }) {
                     )}
                 </div>
 
-                {/* Footer */}
                 <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center space-x-2 text-xs text-slate-500">
-                        <Shield className="h-3.5 w-3.5" />
-                        <span>General access: Restricted</span>
-                    </div>
                     <button 
                         onClick={onClose}
                         className="text-indigo-600 hover:text-indigo-700 font-bold text-sm transition-colors"
