@@ -201,7 +201,7 @@ const approveRequest = async (req, res, next) => {
 const addUserAccess = async (req, res, next) => {
     try {
         const docID = req.params.id;
-        const { user: userID_toAdd, type } = req.body;
+        const { email, type } = req.body;
 
         if (!['view', 'edit'].includes(type))
             return res.status(400).json({ error: "Invalid access type. Must contain 'view' or 'edit'" });
@@ -214,10 +214,11 @@ const addUserAccess = async (req, res, next) => {
         if (!(document.createdBy.toString() === req.user.id))
             return res.status(403).json({ error: "Only the document owner can grant access" });
 
-        const User_toAdd = await userModel.findById(userID_toAdd);
+        const User_toAdd = await userModel.findOne({email})
         if (!User_toAdd)
             return res.status(400).json({ error: "User not found" })
 
+        const userID_toAdd = User_toAdd._id;
         if (type === "view") {
             if (!document.access.view.includes(userID_toAdd)) {
                 document.access.view.push(userID_toAdd)
@@ -239,6 +240,30 @@ const addUserAccess = async (req, res, next) => {
             message: `${type}ing access given successfully`,
             userID: userID_toAdd,
             name: User_toAdd.name
+        })
+    } catch (error) {
+        next(error);
+    }
+}
+
+const getDocCollaborators = async (req, res, next) => {
+    try {
+        const docID = req.params.id;
+        const document = await DocumentModel.findById(docID)
+            .populate("createdBy", "name email")
+            .populate("access.view", "name email")
+            .populate("access.edit", "name email")
+            .populate("requests.user", "name email");
+
+        if (!document) return res.status(404).json({message: "Document not found"});
+
+        res.status(200).json({
+            owner: document.createdBy,
+            collaborators: {
+                view: document.access.view,
+                edit: document.access.edit
+            },
+            requests: document.requests
         })
     } catch (error) {
         next(error);
@@ -404,6 +429,7 @@ export {
     requestAccess,
     approveRequest,
     addUserAccess,
+    getDocCollaborators,
     getDocHistory,
     restoreVersion,
     compareVersions,
