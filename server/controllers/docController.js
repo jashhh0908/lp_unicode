@@ -246,6 +246,48 @@ const addUserAccess = async (req, res, next) => {
     }
 }
 
+const removeUserAccess = async (req, res, next) => {
+    try {
+        const docId = req.params.id;
+        const { email, type } = req.body
+        const document = await DocumentModel.findById(docId)
+        if (!document)
+            return res.status(404).json({ error: "Document not found" });
+        if (!(document.createdBy.toString() === req.user.id))
+            return res.status(403).json({ error: "Only the document owner can remove access" });
+
+        const userToRemove = await userModel.findOne({email});
+        if (!userToRemove)
+            return res.status(400).json({ error: "User not found" })
+
+        const userIdToRemove = userToRemove._id;
+        if (type === "view") {
+            if (document.access.view.includes(userIdToRemove)) {
+                document.access.view.pull(userIdToRemove)
+            } else {
+                return res.status(400).json({ error: "User doesn't have viewing access" });
+            }
+        }
+
+        if (type === "edit") {
+            if (document.access.edit.includes(userIdToRemove)) {
+                document.access.edit.pull(userIdToRemove)
+            } else {
+                return res.status(400).json({ error: "User doesn't have editing access" });
+            }
+        }
+
+        await document.save();
+        res.status(200).json({
+            message: `${type}ing access revoked successfully`,
+            userID: userIdToRemove,
+            name: userToRemove.name
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
 const getDocCollaborators = async (req, res, next) => {
     try {
         const docID = req.params.id;
@@ -396,6 +438,7 @@ const compareVersions = async (req, res, next) => {
     }
 }
 
+
 const exportToPDF = async (req, res, next) => {
     try {
         const docID = req.params.id;
@@ -429,6 +472,7 @@ export {
     requestAccess,
     approveRequest,
     addUserAccess,
+    removeUserAccess,
     getDocCollaborators,
     getDocHistory,
     restoreVersion,
