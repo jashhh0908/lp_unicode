@@ -1,9 +1,10 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Download } from 'lucide-react';
+import { ArrowLeft, Save, Download, Users } from 'lucide-react';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { getDocuments, updateDocument, exportDocument } from '../services/docService';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
+import ShareModal from '../components/ShareModal';
 
 export default function DocumentEditor() {
     const { id } = useParams();
@@ -16,6 +17,8 @@ export default function DocumentEditor() {
     const [content, setContent] = useState("");
     const [isSaving, setIsSaving] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [ownerId, setOwnerId] = useState(null); // Document creator
     const [activeUsers, setActiveUsers] = useState([]);
 
     const handleSave = async () => {
@@ -67,6 +70,7 @@ export default function DocumentEditor() {
         socket.on("doc:load", (doc) => {
             setTitle(doc.title);
             setContent(doc.content);
+            setOwnerId(doc.createdBy); // Capture the owner's ID
         });
         socket.on("doc:update", ({ content }) => {
             if (textAreaRef.current) {
@@ -135,10 +139,19 @@ export default function DocumentEditor() {
                         <Download className="w-4 h-4 mr-2"/>
                         {isExporting ? "Exporting..." : "Export"}
                     </button>
+                    {user?.userInfo?.id === ownerId && (
+                        <button 
+                            onClick={() => setIsShareModalOpen(true)}
+                            className="bg-slate-100 text-slate-700 hover:bg-slate-200 px-4 py-2 rounded-full font-bold text-sm flex items-center transition-all shadow-sm"
+                        >
+                            <Users className="w-4 h-4 mr-2"/>
+                            Share
+                        </button>
+                    )}
                     <button 
                         onClick={handleSave}
                         disabled={isSaving}
-                        className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-4 py-2 rounded-full font-medium text-sm flex items-center transition-colors shadow-sm"
+                        className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-full font-bold text-sm flex items-center transition-all shadow-md shadow-indigo-100"
                     >
                         <Save className="w-4 h-4 mr-2"/>
                         {isSaving ? "Saving..." : "Save"}
@@ -168,6 +181,12 @@ export default function DocumentEditor() {
                     ></textarea>
                 </div>
             </main>
+            <ShareModal 
+                isOpen={isShareModalOpen} 
+                onClose={() => setIsShareModalOpen(false)} 
+                docTitle={title}
+                id={id}
+            />
         </div>
     );
 }
