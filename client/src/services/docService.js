@@ -42,3 +42,13 @@ export const approveRequest = async (id, data) => {
     const response = await api.patch(`/document/approve-request/${id}`, data);
     return response.data;
 };
+
+export const getDocHistory = async (id) => {
+    const response = await api.get(`/document/${id}/history`);
+    return response.data;
+};
+
+export const restoreVersion = async (id, versionId) => {
+    const response = await api.patch(`/document/${id}/restore/${versionId}`);
+    return response.data;
+};

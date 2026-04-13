@@ -331,7 +331,7 @@ const getDocHistory = async (req, res, next) => {
         )
             return res.status(403).json({ error: "You cannot view history as you are not a collaborator on this document" });
 
-        const doc_version = await versionModel.findOne({ document: docID });
+        const doc_version = await versionModel.findOne({ document: docID }).populate("versions.editedBy", "name email");
         if (!doc_version)
             return res.status(404).json({ error: "No version history found" });
 
@@ -366,30 +366,46 @@ const restoreVersion = async (req, res, next) => {
         if (!doc_version)
             return res.status(404).json({ error: "No version history found" });
 
-        const version_to_restore = doc_version.versions.id(versionID)
-        //.id is a special mongoose helper function which searches through the array 
-        let versionNumber = doc_version.versions.length + 1;
-        try {
-            const previousVersion = {
-                versionNumber,
-                editedBy: userID,
-                content: {
-                    title: document.title,
-                    content: document.content
-                }
-            };
+        const version_to_restore = doc_version.versions.id(versionID);
+        if (!version_to_restore)
+            return res.status(404).json({ error: "Version not found" });
 
-            doc_version.versions.push(previousVersion)
-            await doc_version.save();
-        } catch (error) {
-            console.log("Error in saving version: ", error);
-            throw error;
+        const latestVersion = doc_version.versions[doc_version.versions.length - 1];
+
+        const hasUnsavedChanges = 
+            document.title !== latestVersion.content.title || 
+            document.content !== latestVersion.content.content;
+
+        if (hasUnsavedChanges) {
+            let versionNumber = doc_version.versions.length + 1;
+            try {
+                const previousVersion = {
+                    versionNumber,
+                    editedBy: userID,
+                    content: {
+                        title: document.title,
+                        content: document.content
+                    }
+                };
+                doc_version.versions.push(previousVersion);
+                await doc_version.save();
+            } catch (error) {
+                console.log("Error in saving version: ", error);
+                throw error;
+            }
         }
         document.title = version_to_restore.content.title;
         document.content = version_to_restore.content.content;
         await document.save();
-        console.log(`Document ${docID} restored to version ${version_to_restore.versionNumber}'s content by user ${user.name} `)
-        res.status(200).json({ message: "Document restored successfully" })
+
+        const updatedDocument = await DocumentModel.findById(docID);
+        const { io } = await import("../server.js");
+        io.to(docID).emit("doc:load", updatedDocument);
+
+        res.status(200).json({
+            message: "Document restored successfully!",
+            document
+        })
     } catch (error) {
         next(error);
     }
