@@ -32,14 +32,41 @@ ${question}
 Answer clearly and in a concise manner.
         `;
 
-        const response = await ai.models.generateContent({
-            model: "gemini-3-flash-preview",
-            contents: prompt,
-        })
+        const MODELS = [
+            "gemini-3-flash-preview", 
+            "gemini-2.5-flash",
+            "gemini-flash-latest",
+            "gemini-flash-lite-latest"
+        ];
+        
+        let response;
+        let successfulModel = null;
+
+        const promises = MODELS.map(async (modelName) => {
+            const res = await ai.models.generateContent({
+                model: modelName,
+                contents: prompt,
+            });
+            return { res, modelName }; 
+        });
+
+        try {
+            const firstSuccess = await Promise.any(promises);
+            response = firstSuccess.res;
+            successfulModel = firstSuccess.modelName;
+            
+            console.log(`Successfully generated response using model: ${successfulModel}`);
+        } catch (aggregateError) { //aggregate error returns error from all the failed models, not just one
+            console.error("All fallback models failed.");
+            return res.status(503).json({ 
+                error: "All AI models are currently experiencing high demand. Please try again in a few moments." 
+            });
+        }
 
         res.status(200).json({
             message: "Successful response",
-            answer: response.text
+            answer: response.text,
+            usedModel: successfulModel
         })
     } catch (error) {
         console.error("Chatbot Error:", error);
