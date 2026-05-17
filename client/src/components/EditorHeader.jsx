@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function EditorHeader({ 
     title, 
+    handleTitleChange,
     setTitle, 
     handleSave, 
     handleExport, 
@@ -32,7 +33,7 @@ export default function EditorHeader({
                     <input 
                         type="text" 
                         value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                        onChange={(e) => handleTitleChange(e.target.value)}
                         className="text-lg font-medium bg-transparent border border-transparent hover:border-slate-300 focus:border-indigo-500 focus:bg-white rounded px-2 py-1 text-slate-800 focus:outline-none transition-colors w-64 md:w-96"
                         placeholder="Untitled Document"
                     />

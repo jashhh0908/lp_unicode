@@ -135,7 +135,16 @@ export const useSocket = (io) => {
                 }
             }, 2000);
         });
+        socket.on("doc:title_change", ({ documentId, title, lastUpdated }) => {
+            if(!documentId) return;
 
+            const docState = docStateMap.get(documentId);
+            if (!docState) return;
+            if (lastUpdated < docState.lastUpdated) return;
+            docState.title = title;
+            docState.lastUpdated = lastUpdated;
+            socket.to(documentId).emit("doc:title_update", { title });
+        })
         socket.on("heartbeat", ({ documentId }) => {
             const docSessions = presenceMap.get(documentId);
             if (!docSessions) return;

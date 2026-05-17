@@ -79,6 +79,18 @@ export default function DocumentEditor() {
         }
     };
 
+    const handleTitleChange = (newTitle) => {
+        setTitle(newTitle);
+
+        if(socket) {
+            socket.emit("doc:title_change", {
+                documentId: id,
+                title: newTitle,
+                lastUpdated: Date.now()
+            })
+        }
+    };
+
     useEffect(() => {
         if(!socket || !id || !user) return;
 
@@ -102,6 +114,9 @@ export default function DocumentEditor() {
                 setContent(content);
             }
         });
+        socket.on("doc:title_update", ({ title }) => {
+            setTitle(title);
+        });
         socket.on("presence:update", ({ users }) => {
             setActiveUsers(users);
         });
@@ -112,6 +127,7 @@ export default function DocumentEditor() {
             socket.emit("leaveDoc", { documentId: id });
             socket.off("doc:load");
             socket.off("doc:update");
+            socket.off("doc:title_update");
             socket.off("presence:update");
             clearInterval(heartbeat);
         };
@@ -121,6 +137,7 @@ export default function DocumentEditor() {
         <div className="min-h-screen bg-[#F8F9FA] flex flex-col font-sans text-slate-800">
             <EditorHeader 
                 title={title}
+                handleTitleChange={handleTitleChange}
                 setTitle={setTitle}
                 handleSave={handleSave}
                 handleExport={handleExport}
